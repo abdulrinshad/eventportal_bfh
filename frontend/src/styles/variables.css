@@ -1,0 +1,21 @@
+:root {
+  --primary-color: #F4B400;
+  --primary-hover: #E0A300;
+  --primary-light: #FFFBEB;
+  --dark-color: #1F2937;
+  --dark-light: #374151;
+  --dark-hover: #111827;
+  --gray-text: #6B7280;
+  --gray-light: #9CA3AF;
+  --border-color: #E5E7EB;
+  --bg-color: #F8F9FB;
+  --card-bg: #FFFFFF;
+  --card-radius: 16px;
+  --button-radius: 12px;
+  --shadow-soft: 0 4px 20px rgba(31, 41, 55, 0.04);
+  --shadow-medium: 0 10px 30px rgba(31, 41, 55, 0.08);
+  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
+  --max-width: 1200px;
+  --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+}
