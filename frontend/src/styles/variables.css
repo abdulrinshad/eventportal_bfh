@@ -1,0 +1,67 @@
+:root {
+  /* ── Public pages design tokens ── */
+  --primary-color: #F4B400;
+  --primary-hover: #E0A300;
+  --primary-light: #FFFBEB;
+  --dark-color: #1F2937;
+  --dark-light: #374151;
+  --dark-hover: #111827;
+  --gray-text: #6B7280;
+  --gray-light: #9CA3AF;
+  --border-color: #E5E7EB;
+  --bg-color: #F8F9FB;
+  --card-bg: #FFFFFF;
+  --card-radius: 16px;
+  --button-radius: 12px;
+  --shadow-soft: 0 4px 20px rgba(31, 41, 55, 0.04);
+  --shadow-medium: 0 10px 30px rgba(31, 41, 55, 0.08);
+  --font-main: 'Inter', system-ui, -apple-system, sans-serif;
+  --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
+  --max-width: 1200px;
+  --transition-smooth: all 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+
+  /* ── Dashboard design tokens ── */
+  --accent-yellow: #F5C451;
+  --accent-yellow-hover: #E6B53F;
+  --accent-yellow-light: rgba(245, 196, 81, 0.15);
+  --accent-yellow-glow: rgba(245, 196, 81, 0.3);
+
+  --bg-dashboard: #F8FAFC;
+  --bg-card: #FFFFFF;
+  --bg-sidebar: #FFFFFF;
+
+  --text-primary: #0F172A;
+  --text-secondary: #475569;
+  --text-muted: #94A3B8;
+  --text-light: #64748B;
+
+  --border-color-light: #F1F5F9;
+
+  --badge-live-bg: #DCFCE7;
+  --badge-live-text: #15803D;
+  --badge-draft-bg: #FEF3C7;
+  --badge-draft-text: #B45309;
+  --badge-past-bg: #F1F5F9;
+  --badge-past-text: #475569;
+
+  --danger-color: #EF4444;
+  --danger-hover: #DC2626;
+  --danger-bg-light: #FEE2E2;
+  --success-color: #10B981;
+
+  --sidebar-width: 280px;
+
+  --border-radius-sm: 6px;
+  --border-radius-md: 12px;
+  --border-radius-lg: 20px;
+  --border-radius-full: 9999px;
+
+  --shadow-sm: 0 1px 3px 0 rgba(0,0,0,0.05), 0 1px 2px -1px rgba(0,0,0,0.05);
+  --shadow-md: 0 4px 6px -1px rgba(0,0,0,0.05), 0 2px 4px -2px rgba(0,0,0,0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0,0,0,0.04), 0 4px 6px -4px rgba(0,0,0,0.04);
+  --shadow-premium: 0 20px 25px -5px rgba(15,23,42,0.04), 0 8px 10px -6px rgba(15,23,42,0.04);
+
+  --transition-fast: 0.15s ease;
+  --transition-normal: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+  --transition-slow: 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+}

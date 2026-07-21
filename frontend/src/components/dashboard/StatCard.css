@@ -1,0 +1,103 @@
+/* StatCard.css */
+
+.stat-card {
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-color-light);
+  padding: 24px;
+  box-shadow: var(--shadow-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  transition: all var(--transition-normal);
+  position: relative;
+  overflow: hidden;
+}
+
+.stat-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+  border-color: var(--border-color);
+}
+
+.stat-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 4px;
+  height: 100%;
+}
+
+.stat-type-success::before {
+  background-color: var(--success-color);
+}
+
+.stat-type-info::before {
+  background-color: #2563EB;
+}
+
+.stat-type-danger::before {
+  background-color: var(--danger-color);
+}
+
+.stat-type-warning::before {
+  background-color: var(--badge-draft-text);
+}
+
+.stat-type-neutral::before {
+  background-color: var(--text-muted);
+}
+
+.stat-card-title {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: var(--text-light);
+}
+
+.stat-card-value {
+  font-family: 'Outfit', sans-serif;
+  font-size: 32px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.stat-card-footer {
+  display: flex;
+  align-items: center;
+  margin-top: 4px;
+}
+
+.stat-card-subtext {
+  font-size: 13px;
+  font-weight: 600;
+}
+
+/* Subtext colors depending on type */
+.stat-type-success .stat-card-subtext {
+  color: var(--success-color);
+}
+
+.stat-type-info .stat-card-subtext {
+  color: #2563EB;
+}
+
+.stat-type-danger .stat-card-subtext {
+  color: var(--danger-color);
+  background-color: var(--danger-bg-light);
+  padding: 2px 8px;
+  border-radius: var(--border-radius-sm);
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.25px;
+}
+
+.stat-type-warning .stat-card-subtext {
+  color: var(--badge-draft-text);
+}
+
+.stat-type-neutral .stat-card-subtext {
+  color: var(--text-secondary);
+}

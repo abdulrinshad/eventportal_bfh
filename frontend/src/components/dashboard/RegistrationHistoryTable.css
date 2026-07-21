@@ -1,0 +1,58 @@
+/* RegistrationHistoryTable.css */
+
+.history-table-responsive-container {
+  width: 100%;
+  overflow-x: auto;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color-light);
+  border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+}
+
+.history-table-responsive-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.history-table-responsive-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--border-radius-full);
+}
+
+.registration-history-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  min-width: 850px;
+}
+
+.registration-history-table thead {
+  background-color: var(--bg-dashboard);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.registration-history-table th {
+  padding: 16px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-empty-row {
+  text-align: center;
+  padding: 48px !important;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  background-color: var(--bg-card);
+}
+
+.col-thumbnail {
+  width: 90px;
+}
+
+.col-actions {
+  text-align: right;
+  width: 100px;
+}
