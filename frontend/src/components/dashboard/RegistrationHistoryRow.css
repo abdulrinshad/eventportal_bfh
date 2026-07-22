@@ -1,0 +1,149 @@
+/* RegistrationHistoryRow.css */
+
+.registration-history-row {
+  border-bottom: 1px solid var(--border-color-light);
+  transition: background-color var(--transition-fast);
+}
+
+.registration-history-row:hover {
+  background-color: var(--bg-dashboard);
+}
+
+.registration-history-row td {
+  padding: 16px 20px;
+  vertical-align: middle;
+  font-size: 14px;
+}
+
+.history-thumbnail {
+  width: 56px;
+  height: 38px;
+  border-radius: var(--border-radius-sm);
+  object-fit: cover;
+  border: 1px solid var(--border-color-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.cell-event-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cell-reg-id {
+  font-family: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  font-size: 13px;
+  color: var(--text-secondary);
+}
+
+.cell-date {
+  color: var(--text-secondary);
+}
+
+.cell-amount {
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+/* Status Badges */
+.history-status-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--border-radius-full);
+  font-size: 12px;
+  font-weight: 600;
+  text-transform: capitalize;
+}
+
+.history-status-confirmed {
+  background-color: var(--badge-live-bg);
+  color: var(--badge-live-text);
+  border: 1px solid rgba(21, 128, 61, 0.15);
+}
+
+.history-status-cancelled {
+  background-color: var(--badge-past-bg);
+  color: var(--badge-past-text);
+  border: 1px solid var(--border-color);
+}
+
+.history-status-refunded {
+  background-color: var(--danger-bg-light);
+  color: var(--danger-color);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.history-status-badge .status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--border-radius-full);
+  display: inline-block;
+}
+
+.history-status-confirmed .status-dot {
+  background-color: var(--success-color);
+}
+
+.history-status-cancelled .status-dot {
+  background-color: var(--text-light);
+}
+
+.history-status-refunded .status-dot {
+  background-color: var(--danger-color);
+}
+
+/* Row Actions */
+.action-buttons-group {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 8px;
+}
+
+.history-action-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 34px;
+  height: 34px;
+  border-radius: var(--border-radius-md);
+  color: var(--text-secondary);
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  font-size: 14px;
+  transition: all var(--transition-fast);
+  position: relative;
+}
+
+.history-action-btn:hover {
+  background-color: var(--accent-yellow-light);
+  color: var(--text-primary);
+  border-color: var(--accent-yellow);
+}
+
+/* Custom Tooltips */
+.tooltip::after {
+  content: attr(data-tooltip);
+  position: absolute;
+  bottom: 42px;
+  left: 50%;
+  transform: translateX(-50%) scale(0.85);
+  background-color: var(--text-primary);
+  color: #ffffff;
+  padding: 6px 10px;
+  border-radius: var(--border-radius-sm);
+  font-size: 11px;
+  font-weight: 600;
+  white-space: nowrap;
+  pointer-events: none;
+  opacity: 0;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-md);
+  z-index: 100;
+}
+
+.tooltip:hover::after {
+  opacity: 1;
+  transform: translateX(-50%) scale(1);
+}

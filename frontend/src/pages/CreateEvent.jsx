@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import './CreateEvent.css';
 
 /* ─────────────────────────────────────────────────────
@@ -62,7 +64,10 @@ const TABS = [
 /* ─────────────────────────────────────────────────────
    SIDEBAR
 ───────────────────────────────────────────────────── */
-const Sidebar = ({ activeNav, onNav }) => (
+const Sidebar = ({ activeNav, onNav, onNavigateOut }) => {
+  const navigate = useNavigate();
+  const { logout } = useContext(AuthContext);
+  return (
   <aside className="ce-sidebar">
     {/* User card */}
     <div className="ce-sidebar__user">
@@ -81,7 +86,12 @@ const Sidebar = ({ activeNav, onNav }) => (
         <button
           key={id}
           className={`ce-nav-item${activeNav === id ? ' active' : ''}`}
-          onClick={() => onNav(id)}
+          onClick={() => {
+            if (id === 'dashboard') { navigate('/dashboard'); return; }
+            if (id === 'my-events') { if (onNavigateOut) onNavigateOut(); else navigate('/dashboard'); return; }
+            if (id === 'registrations') { navigate('/dashboard'); return; }
+            onNav(id);
+          }}
         >
           <Icon size={16} />
           <span>{label}</span>
@@ -90,13 +100,17 @@ const Sidebar = ({ activeNav, onNav }) => (
 
       <div className="ce-sidebar__divider" />
 
-      <button className="ce-nav-item ce-nav-item--logout" onClick={() => {}}>
+      <button
+        className="ce-nav-item ce-nav-item--logout"
+        onClick={() => { logout(); navigate('/'); }}
+      >
         <IcoLogout size={16} />
         <span>Logout</span>
       </button>
     </nav>
   </aside>
-);
+  );
+};
 
 /* ─────────────────────────────────────────────────────
    BANNER UPLOAD WIDGET
@@ -458,13 +472,11 @@ const CreateEvent = ({ onPublish, onCancel, onNavigateToEdit }) => {
       {/* ── Body: Sidebar + Main ── */}
       <div className="ce-body">
 
-        <Sidebar activeNav={activeNav} onNav={id => {
-            if (id === 'my-events' && typeof onNavigateToEdit === 'function') {
-              onNavigateToEdit();
-            } else {
-              setActiveNav(id);
-            }
-          }} />
+        <Sidebar
+          activeNav={activeNav}
+          onNav={(id) => setActiveNav(id)}
+          onNavigateOut={onNavigateToEdit}
+        />
 
         <div className="ce-main">
           {/* Tab bar */}

@@ -1,0 +1,60 @@
+/* ParticipantsTable.css */
+
+.table-responsive-container {
+  width: 100%;
+  overflow-x: auto;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color-light);
+  border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  /* Custom scrollbar for table container */
+}
+
+.table-responsive-container::-webkit-scrollbar {
+  height: 6px;
+}
+
+.table-responsive-container::-webkit-scrollbar-thumb {
+  background: var(--border-color);
+  border-radius: var(--border-radius-full);
+}
+
+.participants-table {
+  width: 100%;
+  border-collapse: collapse;
+  text-align: left;
+  min-width: 800px; /* Ensures table doesn't shrink too small on viewports */
+}
+
+.participants-table thead {
+  background-color: var(--bg-dashboard);
+  border-bottom: 1px solid var(--border-color);
+}
+
+.participants-table th {
+  padding: 16px 20px;
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-light);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.table-empty-row {
+  text-align: center;
+  padding: 48px !important;
+  color: var(--text-secondary);
+  font-size: 15px;
+  font-weight: 500;
+  background-color: var(--bg-card);
+}
+
+/* Align action column heading and cell contents appropriately */
+.col-actions {
+  text-align: right;
+  width: 80px;
+}
+
+.col-avatar {
+  width: 80px;
+}

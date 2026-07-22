@@ -1,0 +1,187 @@
+/* ParticipantRow.css */
+
+.participant-row {
+  border-bottom: 1px solid var(--border-color-light);
+  transition: background-color var(--transition-fast);
+}
+
+.participant-row:hover {
+  background-color: var(--bg-dashboard);
+}
+
+.participant-row td {
+  padding: 16px 20px;
+  vertical-align: middle;
+  font-size: 14px;
+}
+
+.participant-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-full);
+  object-fit: cover;
+  border: 2px solid var(--border-color-light);
+  box-shadow: var(--shadow-sm);
+}
+
+.avatar-placeholder {
+  width: 40px;
+  height: 40px;
+  border-radius: var(--border-radius-full);
+  background-color: var(--accent-yellow-light);
+  color: var(--badge-draft-text);
+  font-weight: 700;
+  font-size: 14px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid var(--accent-yellow);
+}
+
+.cell-name {
+  font-weight: 600;
+  color: var(--text-primary);
+}
+
+.cell-email {
+  color: var(--text-secondary);
+}
+
+/* Ticket type tags */
+.ticket-badge {
+  display: inline-block;
+  padding: 4px 10px;
+  border-radius: var(--border-radius-sm);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.25px;
+  text-transform: uppercase;
+}
+
+.ticket-vip {
+  background-color: #EFF6FF;
+  color: #1D4ED8;
+  border: 1px solid #DBEAFE;
+}
+
+.ticket-general {
+  background-color: #F1F5F9;
+  color: #475569;
+  border: 1px solid var(--border-color);
+}
+
+.ticket-early {
+  background-color: #FFF7ED;
+  color: #C2410C;
+  border: 1px solid #FFEDD5;
+}
+
+/* Payment Status Badges */
+.payment-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 4px 12px;
+  border-radius: var(--border-radius-full);
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.payment-paid {
+  background-color: var(--badge-live-bg);
+  color: var(--badge-live-text);
+  border: 1px solid rgba(21, 128, 61, 0.15);
+}
+
+.payment-pending {
+  background-color: var(--danger-bg-light);
+  color: var(--danger-color);
+  border: 1px solid rgba(239, 68, 68, 0.15);
+}
+
+.status-dot {
+  width: 6px;
+  height: 6px;
+  border-radius: var(--border-radius-full);
+  display: inline-block;
+}
+
+.payment-paid .status-dot {
+  background-color: var(--success-color);
+}
+
+.payment-pending .status-dot {
+  background-color: var(--danger-color);
+}
+
+/* Row Actions menu */
+.cell-actions {
+  position: relative;
+}
+
+.action-menu-container {
+  position: relative;
+  display: inline-block;
+}
+
+.row-menu-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: var(--border-radius-full);
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.row-menu-btn:hover {
+  background-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.row-context-menu {
+  position: absolute;
+  right: 0;
+  top: 36px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--shadow-lg);
+  width: 170px;
+  padding: 6px;
+  z-index: 100;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  animation: fadeIn 0.15s ease-out;
+}
+
+.context-item {
+  width: 100%;
+  text-align: left;
+  padding: 8px 12px;
+  font-size: 13px;
+  font-weight: 500;
+  border-radius: var(--border-radius-sm);
+  color: var(--text-secondary);
+  transition: background-color var(--transition-fast);
+}
+
+.context-item:hover {
+  background-color: var(--border-color-light);
+  color: var(--text-primary);
+}
+
+.context-item.danger-text {
+  color: var(--danger-color);
+}
+
+.context-item.danger-text:hover {
+  background-color: var(--danger-bg-light);
+}
+
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-5px); }
+  to { opacity: 1; transform: translateY(0); }
+}
