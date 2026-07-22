@@ -15,6 +15,7 @@
   color: #1a1a2e;
   background: #f4f5f7;
   min-height: 100vh;
+  padding-top: 62px; /* offset for fixed .cv-nav */
 }
 
 /* ── Container ── */
@@ -37,10 +38,13 @@
    NAVBAR
 ────────────────────────────────────── */
 .cv-nav {
-  position: sticky;
+  position: fixed;
   top: 0;
+  left: 0;
+  right: 0;
+  width: 100%;
   z-index: 200;
-  background: rgba(255, 255, 255, 0.92);
+  background: rgba(255, 255, 255, 0.95);
   backdrop-filter: blur(16px);
   -webkit-backdrop-filter: blur(16px);
   border-bottom: 1px solid rgba(0, 0, 0, 0.07);

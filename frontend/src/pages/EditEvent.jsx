@@ -1,4 +1,6 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useContext } from 'react';
+import { useNavigate } from 'react-router-dom';
+import { AuthContext } from '../context/AuthContext';
 import './EditEvent.css';
 
 /* ─────────────────────────────────────────────────────
@@ -78,7 +80,10 @@ const NAV_ITEMS = [
 /* ─────────────────────────────────────────────────────
    SIDEBAR
 ───────────────────────────────────────────────────── */
-const Sidebar = ({ onNavigateToCreate }) => (
+const Sidebar = ({ onNavigateToCreate }) => {
+  const navigate = useNavigate();
+  const { logout } = useContext(AuthContext);
+  return (
   <aside className="ee-sidebar">
     <div className="ee-sidebar__user">
       <img
@@ -99,8 +104,12 @@ const Sidebar = ({ onNavigateToCreate }) => (
         <button
           key={id}
           className={`ee-nav-item${id === 'create' ? ' active' : ''}`}
-          onClick={id === 'create' && typeof onNavigateToCreate === 'function'
-            ? onNavigateToCreate : undefined}
+          onClick={() => {
+            if (id === 'create') { if (onNavigateToCreate) onNavigateToCreate(); else navigate('/create'); return; }
+            if (id === 'dashboard') { navigate('/dashboard'); return; }
+            if (id === 'registrations') { navigate('/dashboard'); return; }
+            if (id === 'my-events') { navigate('/dashboard'); return; }
+          }}
         >
           <Icon size={16} />
           <span>{label}</span>
@@ -109,13 +118,17 @@ const Sidebar = ({ onNavigateToCreate }) => (
 
       <div className="ee-sidebar__divider" />
 
-      <button className="ee-nav-item ee-nav-item--logout">
+      <button
+        className="ee-nav-item ee-nav-item--logout"
+        onClick={() => { logout(); navigate('/'); }}
+      >
         <IcoLogout size={16} />
         <span>Logout</span>
       </button>
     </nav>
   </aside>
-);
+  );
+};
 
 /* ─────────────────────────────────────────────────────
    FOOTER  (matches EventDetails / CreateEvent footer)

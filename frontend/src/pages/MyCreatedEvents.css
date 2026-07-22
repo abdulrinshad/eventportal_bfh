@@ -1,0 +1,106 @@
+/* MyCreatedEvents.css */
+
+.my-created-events-page {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+}
+
+.page-main-container {
+  flex-grow: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+.events-grid-wrapper {
+  padding: 8px 40px 40px 40px;
+  flex-grow: 1;
+}
+
+/* Card Responsive Grid layout */
+.events-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 32px;
+  align-items: stretch;
+}
+
+/* Empty State Container */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 64px 32px;
+  background-color: var(--bg-card);
+  border-radius: var(--border-radius-lg);
+  border: 1px dashed var(--border-color);
+  box-shadow: var(--shadow-sm);
+  max-width: 540px;
+  margin: 40px auto;
+  animation: fadeIn 0.3s ease-out;
+}
+
+.empty-icon {
+  font-size: 48px;
+  color: var(--text-muted);
+  margin-bottom: 20px;
+}
+
+.empty-state h3 {
+  font-family: 'Outfit', sans-serif;
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: 8px;
+}
+
+.empty-state p {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.5;
+  margin-bottom: 24px;
+}
+
+.clear-filters-btn {
+  background-color: var(--accent-yellow);
+  color: var(--text-primary);
+  padding: 10px 20px;
+  border-radius: var(--border-radius-md);
+  font-weight: 600;
+  font-size: 14px;
+  transition: all var(--transition-fast);
+  box-shadow: var(--shadow-sm);
+}
+
+.clear-filters-btn:hover {
+  background-color: var(--accent-yellow-hover);
+  box-shadow: var(--shadow-md);
+  transform: translateY(-1px);
+}
+
+/* Responsive Grid Adapters */
+@media (max-width: 1200px) {
+  .events-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 24px;
+  }
+}
+
+@media (max-width: 768px) {
+  .events-grid-wrapper {
+    padding: 8px 24px 24px 24px;
+  }
+  
+  .events-grid {
+    grid-template-columns: 1fr;
+    gap: 20px;
+  }
+  
+  .empty-state {
+    margin: 20px auto;
+    padding: 40px 20px;
+  }
+}

@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
 import './EventDetails.css';
 
 /* ─────────────────────────────────────────────────────
@@ -136,14 +137,14 @@ const Navbar = ({ scrolled }) => (
     <div className="cv-nav__inner">
       <a href="/" className="cv-nav__logo">CompilVision</a>
       <nav className="cv-nav__links">
-        <a href="/" className="cv-nav__link">We Hey</a>
-        <a href="/events" className="cv-nav__link cv-nav__link--active">Events</a>
-        <a href="/about" className="cv-nav__link">About</a>
-        <a href="/contact" className="cv-nav__link">Contact</a>
+        <a href="/" className="cv-nav__link">Home</a>
+        <a href="/" className="cv-nav__link cv-nav__link--active">Events</a>
+        <a href="/" className="cv-nav__link">About</a>
+        <a href="/" className="cv-nav__link">Contact</a>
       </nav>
       <div className="cv-nav__actions">
         <a href="/login" className="cv-nav__login">Login</a>
-        <a href="/register" className="cv-nav__register">Register!</a>
+        <a href="/login" className="cv-nav__register">Register!</a>
       </div>
     </div>
   </header>
@@ -362,7 +363,7 @@ const VenueCard = ({ event }) => {
 /* ─────────────────────────────────────────────────────
    SIMILAR EVENTS
 ───────────────────────────────────────────────────── */
-const SimilarCard = ({ ev }) => (
+const SimilarCard = ({ ev, onDetails }) => (
   <div className="cv-sim-card">
     <div className="cv-sim-card__img-wrap">
       <img src={ev.img} alt={ev.title} className="cv-sim-card__img"
@@ -373,20 +374,26 @@ const SimilarCard = ({ ev }) => (
       <h3 className="cv-sim-card__title">{ev.title}</h3>
       <div className="cv-sim-card__footer">
         <span className={`cv-sim-card__price${ev.free ? ' free' : ''}`}>{ev.price}</span>
-        <a href={`#event-${ev.id}`} className="cv-sim-card__details">Details</a>
+        <button
+          className="cv-sim-card__details"
+          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
+          onClick={() => onDetails && onDetails(ev.id)}
+        >
+          Details
+        </button>
       </div>
     </div>
   </div>
 );
 
-const SimilarEvents = ({ events }) => (
+const SimilarEvents = ({ events, onDetails }) => (
   <div className="cv-similar">
     <div className="cv-similar__header">
       <h2 className="cv-section-title">Similar Events</h2>
-      <a href="/events" className="cv-view-all">View All <IcoArrowRight size={13} /></a>
+      <a href="/" className="cv-view-all">View All <IcoArrowRight size={13} /></a>
     </div>
     <div className="cv-similar__grid">
-      {events.map(ev => <SimilarCard key={ev.id} ev={ev} />)}
+      {events.map(ev => <SimilarCard key={ev.id} ev={ev} onDetails={onDetails} />)}
     </div>
   </div>
 );
@@ -458,6 +465,9 @@ const Footer = () => {
    MAIN PAGE
 ───────────────────────────────────────────────────── */
 const EventDetails = () => {
+  const navigate = useNavigate();
+  const { id } = useParams();
+
   const [scrolled,    setScrolled]    = useState(false);
   const [bookmarked,  setBookmarked]  = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
@@ -478,8 +488,12 @@ const EventDetails = () => {
 
   const handleRegister = () => {
     setRegistered(true);
-    setRegMsg('Registered! Check your inbox for confirmation details.');
-    setTimeout(() => setRegMsg(null), 5000);
+    setRegMsg('Registration successful! Redirecting...');
+    setTimeout(() => navigate('/registration-success'), 1200);
+  };
+
+  const handleSimilarDetails = (eventId) => {
+    navigate(`/events/${eventId}`);
   };
 
   return (
@@ -505,7 +519,7 @@ const EventDetails = () => {
               <ScheduleAccordion schedule={EVENT.schedule} />
               <OrganizerCard organizer={EVENT.organizer} />
               <VenueCard event={EVENT} />
-              <SimilarEvents events={SIMILAR} />
+              <SimilarEvents events={SIMILAR} onDetails={handleSimilarDetails} />
             </div>
 
             {/* Sticky Sidebar */}

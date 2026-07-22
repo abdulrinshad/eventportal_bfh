@@ -1,0 +1,44 @@
+/* Footer.css */
+
+.dashboard-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px 40px;
+  background-color: var(--bg-dashboard);
+  border-top: 1px solid var(--border-color);
+  margin-top: auto; /* Push to the bottom of the container */
+  color: var(--text-muted);
+  font-size: 14px;
+  font-weight: 500;
+}
+
+.footer-right {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.footer-link {
+  color: var(--text-secondary);
+  transition: color var(--transition-fast);
+}
+
+.footer-link:hover {
+  color: var(--text-primary);
+}
+
+.footer-divider {
+  color: var(--text-muted);
+  pointer-events: none;
+}
+
+/* Responsive adjustment */
+@media (max-width: 768px) {
+  .dashboard-footer {
+    flex-direction: column;
+    gap: 12px;
+    text-align: center;
+    padding: 24px;
+  }
+}

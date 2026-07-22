@@ -22,14 +22,16 @@ const Navbar = () => {
 
   const handleLogout = () => {
     logout();
-    navigate('/');
+    navigate('/events/1');
   };
+
+  const logoHref = user ? '/dashboard' : '/events/1';
 
   return (
     <header className={`navbar ${scrolled ? 'scrolled' : ''}`}>
       <div className="container navbar-container">
         {/* Left: Logo */}
-        <Link to="/" className="navbar-logo">
+        <Link to={logoHref} className="navbar-logo">
           <FiCalendar /> Event<span>Hub</span>
         </Link>
 
@@ -37,25 +39,29 @@ const Navbar = () => {
         <nav className={`navbar-nav ${menuOpen ? 'open' : ''}`}>
           <ul className="navbar-menu">
             <li>
-              <NavLink to="/" end className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
+              <NavLink to="/events/1" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
                 Home
               </NavLink>
             </li>
             <li>
-              <NavLink to="/events" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
+              <NavLink to="/events/1" className={({ isActive }) => `navbar-link`}>
                 Events
               </NavLink>
             </li>
-            <li>
-              <NavLink to="/about" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
-                About
-              </NavLink>
-            </li>
-            <li>
-              <NavLink to="/contact" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
-                Contact
-              </NavLink>
-            </li>
+            {user && (
+              <>
+                <li>
+                  <NavLink to="/dashboard" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
+                    Dashboard
+                  </NavLink>
+                </li>
+                <li>
+                  <NavLink to="/create" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
+                    Create Event
+                  </NavLink>
+                </li>
+              </>
+            )}
           </ul>
         </nav>
 
@@ -78,7 +84,7 @@ const Navbar = () => {
               <button onClick={() => navigate('/login')} className="navbar-login-btn">
                 Login
               </button>
-              <Button onClick={() => navigate('/register')} variant="primary">
+              <Button onClick={() => navigate('/login')} variant="primary">
                 Register
               </Button>
             </>

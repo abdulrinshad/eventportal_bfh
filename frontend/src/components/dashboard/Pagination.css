@@ -1,0 +1,99 @@
+/* Pagination.css */
+
+.pagination-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 24px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color-light);
+  border-top: none;
+  border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
+  box-shadow: var(--shadow-sm);
+  margin-top: -1px; /* overlap border to avoid double lines */
+}
+
+.pagination-arrow-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 16px;
+  background-color: var(--bg-card);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+}
+
+.pagination-arrow-btn:hover:not(:disabled) {
+  background-color: var(--bg-dashboard);
+  color: var(--text-primary);
+  border-color: var(--text-secondary);
+}
+
+.pagination-arrow-btn:disabled {
+  background-color: var(--border-color-light);
+  color: var(--text-muted);
+  border-color: var(--border-color-light);
+  cursor: not-allowed;
+}
+
+.pagination-pages {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.page-num-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 36px;
+  height: 36px;
+  padding: 0 6px;
+  border-radius: var(--border-radius-md);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-secondary);
+  transition: all var(--transition-fast);
+  border: 1px solid transparent;
+}
+
+.page-num-btn:hover {
+  background-color: var(--bg-dashboard);
+  border-color: var(--border-color);
+  color: var(--text-primary);
+}
+
+.page-num-btn.active {
+  background-color: var(--accent-yellow);
+  color: var(--text-primary);
+  border-color: var(--accent-yellow);
+  box-shadow: var(--shadow-sm);
+}
+
+.pagination-ellipsis {
+  font-size: 14px;
+  color: var(--text-muted);
+  padding: 0 6px;
+}
+
+/* Responsive design */
+@media (max-width: 600px) {
+  .pagination-container {
+    flex-direction: column;
+    gap: 16px;
+    padding: 16px;
+  }
+  
+  .pagination-arrow-btn {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .pagination-pages {
+    order: -1;
+  }
+}
