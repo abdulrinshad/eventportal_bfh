@@ -13,6 +13,7 @@ import Login               from './pages/Login';
 import Profile             from './pages/Profile';
 import Notifications       from './pages/Notifications';
 import Settings            from './pages/Settings';
+import LandingPage from './pages/LandingPage';
 
 /**
  * SmartRoot — Redirects based on auth state.
@@ -90,7 +91,7 @@ function App() {
         <EventProvider>
           <Routes>
             {/* ── Smart Root ── */}
-            <Route path="/" element={<SmartRoot />} />
+            <Route path="/" element={<LandingPage />} />
 
             {/* ── Public Routes ── */}
             <Route path="/events/:id"           element={<EventDetails />} />
