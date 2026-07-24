@@ -1,39 +1,43 @@
 import React from 'react';
-import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
+import {
+  BrowserRouter,
+  Routes,
+  Route,
+  Navigate,
+  useNavigate,
+} from 'react-router-dom';
+
 import { AuthProvider } from './context/AuthContext';
 import { EventProvider } from './context/EventContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 
-import LandingPage from './pages/LandingPage';
-
+// Public Pages
+import Home from './pages/Home';
+import ExploreEvents from './pages/ExploreEvents';
 import EventDetails from './pages/EventDetails';
-import CreateEvent from './pages/CreateEvent';
-import EditEvent from './pages/EditEvent';
-import RegistrationSuccess from './pages/RegistrationSuccess';
-import Dashboard from './pages/Dashboard';
+import About from './pages/About';
+import Contact from './pages/Contact';
+import HelpCenter from './pages/HelpCenter';
 
 import Login from './pages/Login';
 import Register from './pages/Register';
 import ForgotPassword from './pages/ForgotPassword';
 import OTPVerification from './pages/OTPVerification';
 import ResetPassword from './pages/ResetPassword';
+import RegistrationSuccess from './pages/RegistrationSuccess';
 
+// Protected Pages
+import Dashboard from './pages/Dashboard';
 import Profile from './pages/Profile';
 import Notifications from './pages/Notifications';
 import Settings from './pages/Settings';
 
-import About from './pages/About';
-import Contact from './pages/Contact';
-import HelpCenter from './pages/HelpCenter';
-import Home from './pages/Home';
-import ExploreEvents from './pages/ExploreEvents';
+import CreateEvent from './pages/CreateEvent';
+import EditEvent from './pages/EditEvent';
 
 import MyCreatedEvents from './pages/MyCreatedEvents';
 import MyRegisteredEvents from './pages/MyRegisteredEvents';
 
-/**
- * Wrapper for RegistrationSuccess
- */
 function RegistrationSuccessWrapper() {
   const navigate = useNavigate();
 
@@ -45,9 +49,6 @@ function RegistrationSuccessWrapper() {
   );
 }
 
-/**
- * Wrapper for CreateEvent
- */
 function CreateEventWrapper() {
   const navigate = useNavigate();
 
@@ -60,9 +61,6 @@ function CreateEventWrapper() {
   );
 }
 
-/**
- * Wrapper for EditEvent
- */
 function EditEventWrapper() {
   const navigate = useNavigate();
 
@@ -75,9 +73,6 @@ function EditEventWrapper() {
   );
 }
 
-/**
- * Wrapper for MyCreatedEvents
- */
 function MyCreatedEventsWrapper() {
   const navigate = useNavigate();
 
@@ -91,9 +86,6 @@ function MyCreatedEventsWrapper() {
   );
 }
 
-/**
- * Wrapper for MyRegisteredEvents
- */
 function MyRegisteredEventsWrapper() {
   const navigate = useNavigate();
 
@@ -112,9 +104,9 @@ function App() {
         <EventProvider>
           <Routes>
 
-            {/* Public Routes */}
-            <Route path="/" element={<LandingPage />} />
-            <Route path="/home" element={<Home />} />
+            {/* ---------- Public Routes ---------- */}
+
+            <Route path="/" element={<Home />} />
             <Route path="/events" element={<ExploreEvents />} />
             <Route path="/events/:id" element={<EventDetails />} />
 
@@ -133,7 +125,7 @@ function App() {
               element={<RegistrationSuccessWrapper />}
             />
 
-            {/* Protected Routes */}
+            {/* ---------- Protected Routes ---------- */}
 
             <Route
               path="/dashboard"
@@ -207,7 +199,7 @@ function App() {
               }
             />
 
-            {/* Fallback */}
+            {/* ---------- Fallback ---------- */}
 
             <Route path="*" element={<Navigate to="/" replace />} />
 
