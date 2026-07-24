@@ -144,7 +144,7 @@ const Navbar = ({ scrolled }) => (
       </nav>
       <div className="cv-nav__actions">
         <a href="/login" className="cv-nav__login">Login</a>
-        <a href="/login" className="cv-nav__register">Register!</a>
+        <a href="/register" className="cv-nav__register">Register!</a>
       </div>
     </div>
   </header>
@@ -461,6 +461,8 @@ const Footer = () => {
   );
 };
 
+import { AppLayout } from '../components/ui/DesignSystem';
+
 /* ─────────────────────────────────────────────────────
    MAIN PAGE
 ───────────────────────────────────────────────────── */
@@ -468,17 +470,10 @@ const EventDetails = () => {
   const navigate = useNavigate();
   const { id } = useParams();
 
-  const [scrolled,    setScrolled]    = useState(false);
   const [bookmarked,  setBookmarked]  = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
   const [registered,  setRegistered]  = useState(false);
   const [regMsg,      setRegMsg]      = useState(null);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 10);
-    window.addEventListener('scroll', onScroll, { passive: true });
-    return () => window.removeEventListener('scroll', onScroll);
-  }, []);
 
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href).catch(() => {});
@@ -497,10 +492,8 @@ const EventDetails = () => {
   };
 
   return (
-    <div className="cv-root">
-      <Navbar scrolled={scrolled} />
-
-      <main>
+    <AppLayout>
+      <main style={{ paddingBottom: '40px' }}>
         <HeroBanner
           event={EVENT}
           bookmarked={bookmarked}
@@ -510,7 +503,22 @@ const EventDetails = () => {
         />
 
         <div className="cv-container">
-          {regMsg && <div className="cv-reg-alert">{regMsg}</div>}
+          {regMsg && (
+            <div
+              style={{
+                background: '#DCFCE7',
+                border: '1px solid #15803D',
+                borderRadius: '12px',
+                padding: '12px 16px',
+                fontSize: '14px',
+                color: '#15803D',
+                marginBottom: '20px',
+                fontWeight: '600',
+              }}
+            >
+              {regMsg}
+            </div>
+          )}
 
           <div className="cv-layout">
             {/* Main column */}
@@ -532,9 +540,7 @@ const EventDetails = () => {
           </div>
         </div>
       </main>
-
-      <Footer />
-    </div>
+    </AppLayout>
   );
 };
 

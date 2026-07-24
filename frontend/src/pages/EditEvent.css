@@ -10,23 +10,23 @@
 
 /* ── Design tokens ── */
 :root {
-  --ee-amber:       #f4b400;
-  --ee-amber-hover: #e5a800;
-  --ee-amber-light: #fffbeb;
-  --ee-dark:        #111827;
-  --ee-dark-2:      #1f2937;
-  --ee-dark-3:      #374151;
-  --ee-gray:        #6b7280;
-  --ee-gray-light:  #9ca3af;
-  --ee-border:      #e5e7eb;
-  --ee-bg:          #f4f5f7;
-  --ee-card:        #ffffff;
-  --ee-red:         #ef4444;
-  --ee-red-dark:    #dc2626;
-  --ee-green:       #10b981;
-  --ee-radius:      12px;
-  --ee-radius-sm:   8px;
-  --ee-shadow:      0 1px 12px rgba(0,0,0,0.06);
+  --ee-amber:       var(--primary-color);
+  --ee-amber-hover: var(--primary-hover);
+  --ee-amber-light: var(--primary-light);
+  --ee-dark:        var(--dark-color);
+  --ee-dark-2:      var(--dark-light);
+  --ee-dark-3:      var(--dark-hover);
+  --ee-gray:        var(--gray-text);
+  --ee-gray-light:  var(--gray-light);
+  --ee-border:      var(--border-color);
+  --ee-bg:          var(--bg-color);
+  --ee-card:        var(--card-bg);
+  --ee-red:         var(--danger-color);
+  --ee-red-dark:    var(--danger-hover);
+  --ee-green:       var(--success-color);
+  --ee-radius:      var(--card-radius);
+  --ee-radius-sm:   12px;
+  --ee-shadow:      var(--shadow-soft);
   --ee-sidebar-w:   220px;
   --ee-header-h:    60px;
 }

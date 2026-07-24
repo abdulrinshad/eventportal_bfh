@@ -84,7 +84,7 @@ const Navbar = () => {
               <button onClick={() => navigate('/login')} className="navbar-login-btn">
                 Login
               </button>
-              <Button onClick={() => navigate('/login')} variant="primary">
+              <Button onClick={() => navigate('/register')} variant="primary">
                 Register
               </Button>
             </>
