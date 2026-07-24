@@ -1,20 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import { FiCalendar, FiMapPin, FiTag, FiXCircle } from 'react-icons/fi';
-import './RegistrationCard.css';
+import { ContentCard, SecondaryButton, DangerButton } from '../ui/DesignSystem';
 
 function RegistrationCard({ registration, onCancel, onViewDetails }) {
   const navigate = useNavigate();
   const { id, category, title, date, time, location, ticketType, banner } = registration;
-
-  const getBadgeClass = (cat) => {
-    switch (cat?.toLowerCase()) {
-      case 'conference': return 'badge-conference';
-      case 'gala':       return 'badge-gala';
-      case 'workshop':   return 'badge-workshop';
-      default:           return 'badge-default';
-    }
-  };
 
   const handleViewDetails = () => {
     if (onViewDetails) {
@@ -25,52 +16,75 @@ function RegistrationCard({ registration, onCancel, onViewDetails }) {
   };
 
   return (
-    <div className="registration-card">
-      <div className="card-header-image">
-        <img src={banner} alt={title} className="banner-image" />
-        <span className={'category-badge ' + getBadgeClass(category)}>
+    <ContentCard style={{ padding: '0px' }}>
+      <div style={{ position: 'relative', height: '140px', overflow: 'hidden', background: '#F1F5F9' }}>
+        <img 
+          src={banner} 
+          alt={title} 
+          style={{ width: '100%', height: '100%', objectFit: 'cover' }} 
+          onError={(e) => { e.target.src = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?w=600&auto=format&fit=crop&q=80'; }}
+        />
+        <span 
+          style={{
+            position: 'absolute',
+            top: '12px',
+            left: '12px',
+            background: 'rgba(255, 255, 255, 0.9)',
+            padding: '4px 10px',
+            borderRadius: '20px',
+            fontSize: '11px',
+            fontWeight: '700',
+            color: '#111827',
+            textTransform: 'uppercase',
+            letterSpacing: '0.05em',
+            boxShadow: '0 2px 4px rgba(0,0,0,0.05)'
+          }}
+        >
           {category}
         </span>
       </div>
 
-      <div className="card-body">
-        <h3 className="event-title">{title}</h3>
+      <div style={{ padding: '20px' }}>
+        <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 12px 0', fontFamily: 'var(--font-heading)' }}>
+          {title}
+        </h3>
 
-        <div className="event-details-list">
-          <div className="detail-item" title="Date and Time">
-            <FiCalendar className="detail-icon" />
-            <div className="detail-text-group">
-              <span className="main-detail">{date}</span>
-              <span className="sub-detail">{time}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', fontSize: '14px', color: '#475569', marginBottom: '18px' }}>
+          <div style={{ display: 'flex', gap: '8px' }}>
+            <FiCalendar color="#94A3B8" style={{ marginTop: '3px' }} />
+            <div style={{ display: 'flex', flexDirection: 'column' }}>
+              <span style={{ fontWeight: '600', color: '#111827' }}>{date}</span>
+              <span style={{ fontSize: '12px', color: '#64748B' }}>{time}</span>
             </div>
           </div>
 
-          <div className="detail-item" title="Location">
-            <FiMapPin className="detail-icon" />
-            <span className="detail-text">{location}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FiMapPin color="#94A3B8" />
+            <span>{location}</span>
           </div>
 
-          <div className="detail-item" title="Ticket Type">
-            <FiTag className="detail-icon" />
-            <span className="detail-text ticket-badge">{ticketType}</span>
+          <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+            <FiTag color="#94A3B8" />
+            <span style={{ fontSize: '12px', fontWeight: '600', background: '#F1F5F9', padding: '2px 8px', borderRadius: '4px' }}>
+              {ticketType}
+            </span>
           </div>
         </div>
-      </div>
 
-      <div className="card-actions-wrapper">
-        <button className="view-details-btn" onClick={handleViewDetails}>
-          <span>View Details</span>
-        </button>
-        <button
-          className="cancel-reg-btn tooltip"
-          data-tooltip="Cancel Registration"
-          onClick={() => onCancel && onCancel(id)}
-          aria-label="Cancel Registration"
-        >
-          <FiXCircle />
-        </button>
+        <div style={{ display: 'flex', gap: '8px', borderTop: '1px solid #F1F5F9', paddingTop: '14px' }}>
+          <SecondaryButton onClick={handleViewDetails} style={{ flex: 1, fontSize: '13px' }}>
+            View Details
+          </SecondaryButton>
+          <DangerButton 
+            onClick={() => onCancel && onCancel(id)}
+            style={{ padding: '10px' }}
+            title="Cancel Registration"
+          >
+            <FiXCircle size={16} />
+          </DangerButton>
+        </div>
       </div>
-    </div>
+    </ContentCard>
   );
 }
 

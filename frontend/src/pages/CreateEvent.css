@@ -10,21 +10,21 @@
 
 /* ── Design tokens (mirrored from EventDetails) ── */
 :root {
-  --ce-amber:       #f4b400;
-  --ce-amber-hover: #e5a800;
-  --ce-amber-light: #fffbeb;
-  --ce-dark:        #111827;
-  --ce-dark-2:      #1f2937;
-  --ce-dark-3:      #374151;
-  --ce-gray:        #6b7280;
-  --ce-gray-light:  #9ca3af;
-  --ce-border:      #e5e7eb;
-  --ce-bg:          #f4f5f7;
-  --ce-card:        #ffffff;
-  --ce-section-bg:  #eef0f8;
-  --ce-radius:      14px;
-  --ce-radius-sm:   8px;
-  --ce-shadow:      0 1px 12px rgba(0,0,0,0.06);
+  --ce-amber:       var(--primary-color);
+  --ce-amber-hover: var(--primary-hover);
+  --ce-amber-light: var(--primary-light);
+  --ce-dark:        var(--dark-color);
+  --ce-dark-2:      var(--dark-light);
+  --ce-dark-3:      var(--dark-hover);
+  --ce-gray:        var(--gray-text);
+  --ce-gray-light:  var(--gray-light);
+  --ce-border:      var(--border-color);
+  --ce-bg:          var(--bg-color);
+  --ce-card:        var(--card-bg);
+  --ce-section-bg:  #F8FAFC;
+  --ce-radius:      var(--card-radius);
+  --ce-radius-sm:   12px;
+  --ce-shadow:      var(--shadow-soft);
   --ce-sidebar-w:   228px;
   --ce-header-h:    62px;
 }

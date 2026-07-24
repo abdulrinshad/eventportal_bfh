@@ -1,10 +1,9 @@
 import React, { useState } from 'react';
-import { FiSearch, FiFolderMinus } from 'react-icons/fi';
-import DashboardFooter from '../components/dashboard/DashboardFooter';
+import { FiFolderMinus } from 'react-icons/fi';
+import { AppLayout, PageContainer, PageHeader, SearchBar, PrimaryButton } from '../components/ui/DesignSystem';
 import RegistrationCard from '../components/dashboard/RegistrationCard';
 import RegistrationSummary from '../components/dashboard/RegistrationSummary';
 import { registrationsData } from '../data/registrations';
-import './MyRegisteredEvents.css';
 
 function MyRegisteredEvents({ onViewHistory, onViewDetails }) {
   const [registrations, setRegistrations] = useState(registrationsData);
@@ -23,68 +22,80 @@ function MyRegisteredEvents({ onViewHistory, onViewDetails }) {
   );
 
   return (
-    <div className="my-registered-events-page">
-      <div className="page-main-container">
+    <AppLayout activeItem="My Registrations">
+      <PageContainer size="xl">
+        <PageHeader
+          title="My Registered Events"
+          description="Manage your upcoming event attendance, tickets, and coordinates."
+          action={
+            <PrimaryButton onClick={onViewHistory}>
+              View History
+            </PrimaryButton>
+          }
+        />
 
-        <header className="registered-events-header">
-          <div className="header-text-group">
-            <h1 className="header-title">My Registered Events</h1>
-            <p className="header-subtitle">
-              Manage your upcoming event attendance and ticket details.
-            </p>
-          </div>
-
-          <div className="header-right-controls">
-            <div className="header-search-wrapper">
-              <FiSearch className="search-icon" />
-              <input
-                type="text"
-                className="search-input"
-                placeholder="Search events..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-          </div>
-        </header>
-
-        <div className="page-content-wrapper">
-          {/* Cards FIRST — matches the reference design */}
-          {filteredRegistrations.length > 0 ? (
-            <div className="registrations-grid">
-              {filteredRegistrations.map((reg) => (
-                <RegistrationCard
-                  key={reg.id}
-                  registration={reg}
-                  onCancel={handleCancelRegistration}
-                  onViewDetails={onViewDetails}
-                />
-              ))}
-            </div>
-          ) : (
-            <div className="empty-state">
-              <FiFolderMinus className="empty-icon" />
-              <h3>No registered events found</h3>
-              <p>
-                {searchTerm
-                  ? "We couldn't find any events matching your search."
-                  : 'You have not registered for any events yet.'}
-              </p>
-              {searchTerm && (
-                <button className="clear-search-btn" onClick={() => setSearchTerm('')}>
-                  Clear search
-                </button>
-              )}
-            </div>
-          )}
-
-          {/* Summary BELOW cards — matches the reference design */}
-          <RegistrationSummary registrations={registrations} />
+        {/* Filter toolbar */}
+        <div style={{ display: 'flex', gap: '16px', marginBottom: '28px', flexWrap: 'wrap', alignItems: 'center' }}>
+          <SearchBar
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            placeholder="Search registered events..."
+          />
         </div>
-      </div>
 
-      <DashboardFooter />
-    </div>
+        {/* Cards List */}
+        {filteredRegistrations.length > 0 ? (
+          <div
+            style={{
+              display: 'grid',
+              gridTemplateColumns: 'repeat(auto-fill, minmax(320px, 1fr))',
+              gap: '24px',
+              marginBottom: '32px',
+            }}
+          >
+            {filteredRegistrations.map((reg) => (
+              <RegistrationCard
+                key={reg.id}
+                registration={reg}
+                onCancel={handleCancelRegistration}
+                onViewDetails={onViewDetails}
+              />
+            ))}
+          </div>
+        ) : (
+          <div
+            style={{
+              display: 'flex',
+              flexDirection: 'column',
+              alignItems: 'center',
+              justifyContent: 'center',
+              padding: '60px 24px',
+              background: '#FFFFFF',
+              borderRadius: '20px',
+              border: '1.5px dashed #E5E7EB',
+              textAlign: 'center',
+              marginBottom: '32px',
+            }}
+          >
+            <FiFolderMinus size={48} color="#94A3B8" style={{ marginBottom: '16px' }} />
+            <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 8px 0' }}>No registered events found</h3>
+            <p style={{ fontSize: '14px', color: '#6B7280', margin: '0 0 20px 0', maxWidth: '360px' }}>
+              {searchTerm
+                ? "We couldn't find any events matching your search."
+                : 'You have not registered for any events yet.'}
+            </p>
+            {searchTerm && (
+              <PrimaryButton onClick={() => setSearchTerm('')}>
+                Clear search
+              </PrimaryButton>
+            )}
+          </div>
+        )}
+
+        {/* Summary card */}
+        <RegistrationSummary registrations={registrations} />
+      </PageContainer>
+    </AppLayout>
   );
 }
 

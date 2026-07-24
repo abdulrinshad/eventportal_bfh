@@ -1,8 +1,6 @@
-﻿import React, { useState } from 'react';
-import Sidebar from '../components/Sidebar/Sidebar';
-import DashboardFooter from '../components/dashboard/DashboardFooter';
-import { FiShield, FiBell, FiEye, FiTrash2, FiSave } from 'react-icons/fi';
-import './Profile.css';
+import React, { useState } from 'react';
+import { AppLayout, PageContainer, PageHeader, ContentCard, PrimaryButton, SecondaryButton } from '../components/ui/DesignSystem';
+import { FiShield, FiBell, FiEye, FiTrash2, FiSave, FiLock } from 'react-icons/fi';
 
 function Settings() {
   const [emailNotifs, setEmailNotifs]     = useState(true);
@@ -17,97 +15,123 @@ function Settings() {
   };
 
   const Toggle = ({ checked, onChange, label }) => (
-    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'14px 0', borderBottom:'1px solid var(--border-color-light)' }}>
-      <span style={{ fontSize:14, color:'var(--text-primary)', fontWeight:500 }}>{label}</span>
+    <div style={{ display:'flex', justifyContent:'space-between', alignItems:'center', padding:'16px 0', borderBottom:'1px solid #F1F5F9' }}>
+      <span style={{ fontSize: '14px', color: '#1F2937', fontWeight: '600' }}>{label}</span>
       <button
+        type="button"
         onClick={() => onChange(!checked)}
         style={{
-          width:44, height:24, borderRadius:12, border:'none', cursor:'pointer',
-          background: checked ? 'var(--accent-yellow)' : 'var(--border-color)',
-          position:'relative', transition:'background 0.2s',
+          width: '46px',
+          height: '24px',
+          borderRadius: '14px',
+          border: 'none',
+          cursor: 'pointer',
+          background: checked ? '#F5C451' : '#E2E8F0',
+          position: 'relative',
+          transition: 'background 0.2s ease',
+          padding: 0,
+          outline: 'none',
         }}
       >
         <span style={{
-          position:'absolute', top:2, left: checked ? 22 : 2,
-          width:20, height:20, borderRadius:'50%', background:'#fff',
-          transition:'left 0.2s', boxShadow:'0 1px 3px rgba(0,0,0,0.2)',
+          position: 'absolute',
+          top: '2px',
+          left: checked ? '24px' : '2px',
+          width: '20px',
+          height: '20px',
+          borderRadius: '50%',
+          background: '#FFFFFF',
+          transition: 'left 0.2s cubic-bezier(0.16, 1, 0.3, 1)',
+          boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
         }} />
       </button>
     </div>
   );
 
-  const Section = ({ icon, title, children }) => (
-    <div style={{ background:'var(--bg-card)', borderRadius:'var(--border-radius-lg)', border:'1px solid var(--border-color-light)', padding:28, boxShadow:'var(--shadow-sm)', marginBottom:24 }}>
-      <h3 style={{ fontFamily:'Outfit, sans-serif', fontSize:16, fontWeight:700, color:'var(--text-primary)', margin:'0 0 16px', display:'flex', alignItems:'center', gap:10, paddingBottom:12, borderBottom:'1px solid var(--border-color-light)' }}>
-        {icon} {title}
-      </h3>
-      {children}
-    </div>
-  );
-
   return (
-    <div className="dashboard-page-layout">
-      <Sidebar />
-      <main className="dashboard-main-content">
-        <div className="profile-page">
-
-          <div className="profile-header">
-            <div>
-              <h1 className="profile-page-title">Settings</h1>
-              <p className="profile-page-subtitle">Manage your account preferences and privacy options.</p>
-            </div>
-            <button className="profile-edit-btn" onClick={handleSave}>
+    <AppLayout activeItem="Settings">
+      <PageContainer size="lg">
+        <PageHeader
+          title="Configurations"
+          description="Manage workspace security credentials, notification frequencies, and active sessions."
+          action={
+            <PrimaryButton onClick={handleSave}>
               <FiSave /> Save Changes
-            </button>
+            </PrimaryButton>
+          }
+        />
+
+        {saved && (
+          <div style={{ background: '#DCFCE7', border: '1px solid #15803D', borderRadius: '12px', padding: '12px 16px', color: '#15803D', fontWeight: '600', marginBottom: '24px' }}>
+            ✓ Account preferences updated successfully!
           </div>
+        )}
 
-          {saved && (
-            <div className="profile-save-toast">
-              ✅ Settings saved successfully!
-            </div>
-          )}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+          
+          {/* Notifications Card */}
+          <ContentCard>
+            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #F1F5F9', fontFamily: 'var(--font-heading)' }}>
+              <FiBell color="#F5C451" /> Notification Channels
+            </h3>
+            <Toggle checked={emailNotifs} onChange={setEmailNotifs} label="Receive daily digest summaries" />
+            <Toggle checked={pushNotifs} onChange={setPushNotifs} label="Live desktop push notifications" />
+          </ContentCard>
 
-          <Section icon={<FiBell size={16} />} title="Notification Preferences">
-            <Toggle checked={emailNotifs}  onChange={setEmailNotifs}  label="Email Notifications" />
-            <Toggle checked={pushNotifs}   onChange={setPushNotifs}   label="Push Notifications" />
-          </Section>
+          {/* Privacy Card */}
+          <ContentCard>
+            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #F1F5F9', fontFamily: 'var(--font-heading)' }}>
+              <FiEye color="#F5C451" /> Visibility &amp; Listing Discovery
+            </h3>
+            <Toggle checked={profilePublic} onChange={setProfilePublic} label="Display professional profile on explore portal" />
+          </ContentCard>
 
-          <Section icon={<FiEye size={16} />} title="Privacy Settings">
-            <Toggle checked={profilePublic} onChange={setProfilePublic} label="Make profile public" />
-          </Section>
-
-          <Section icon={<FiShield size={16} />} title="Security">
-            <Toggle checked={twoFactor} onChange={setTwoFactor} label="Two-factor authentication" />
-            <div style={{ marginTop:20 }}>
-              <p style={{ fontSize:13, color:'var(--text-secondary)', marginBottom:12 }}>
-                Want to update your password? Use the button below.
+          {/* Security Card */}
+          <ContentCard>
+            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #F1F5F9', fontFamily: 'var(--font-heading)' }}>
+              <FiShield color="#F5C451" /> Security Keys &amp; Credentials
+            </h3>
+            <Toggle checked={twoFactor} onChange={setTwoFactor} label="Enforce 2FA verification code on authentication" />
+            <div style={{ marginTop: '20px' }}>
+              <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '14px', lineHeight: '1.5' }}>
+                Reset account password and terminate all other active browser session tokens.
               </p>
-              <button style={{ padding:'10px 20px', border:'1px solid var(--border-color)', borderRadius:'var(--border-radius-md)', background:'var(--bg-card)', color:'var(--text-primary)', fontWeight:600, fontSize:14, cursor:'pointer', transition:'all 0.15s' }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--accent-yellow)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--border-color)'}
-                onClick={() => alert('Password reset email sent!')}
-              >
-                Change Password
-              </button>
+              <SecondaryButton onClick={() => alert('Password reset verification sent!')}>
+                <FiLock /> Change Account Password
+              </SecondaryButton>
             </div>
-          </Section>
+          </ContentCard>
 
-          <Section icon={<FiTrash2 size={16} />} title="Danger Zone">
-            <p style={{ fontSize:13, color:'var(--text-secondary)', marginBottom:16, lineHeight:1.6 }}>
-              Permanently delete your account and all associated data. This action cannot be undone.
+          {/* Danger Card */}
+          <ContentCard style={{ border: '1px solid #FEE2E2', background: '#FFFDFD' }}>
+            <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#EF4444', margin: '0 0 16px 0', display: 'flex', alignItems: 'center', gap: '10px', paddingBottom: '12px', borderBottom: '1px solid #FEE2E2', fontFamily: 'var(--font-heading)' }}>
+              <FiTrash2 /> Danger Zone
+            </h3>
+            <p style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px', lineHeight: '1.6' }}>
+              Permanently delete all workspace analytics, attendee files, and ticketing records. This action cannot be reverted.
             </p>
             <button
-              style={{ padding:'10px 20px', border:'1px solid var(--danger-color)', borderRadius:'var(--border-radius-md)', background:'var(--danger-bg-light)', color:'var(--danger-color)', fontWeight:600, fontSize:14, cursor:'pointer', transition:'all 0.15s' }}
               onClick={() => alert('Account deletion is disabled in demo mode.')}
+              style={{
+                padding: '10px 20px',
+                border: '1.5px solid #FEE2E2',
+                borderRadius: '12px',
+                background: '#FEF2F2',
+                color: '#EF4444',
+                fontWeight: '600',
+                fontSize: '14px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+              onMouseEnter={(e) => { e.currentTarget.style.background = '#FDE8E8'; }}
+              onMouseLeave={(e) => { e.currentTarget.style.background = '#FEF2F2'; }}
             >
               Delete Account
             </button>
-          </Section>
-
+          </ContentCard>
         </div>
-        <DashboardFooter />
-      </main>
-    </div>
+      </PageContainer>
+    </AppLayout>
   );
 }
 

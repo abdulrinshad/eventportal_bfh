@@ -1,6 +1,5 @@
-import React, { useState, useRef, useContext } from 'react';
-import { useNavigate } from 'react-router-dom';
-import { AuthContext } from '../context/AuthContext';
+import React, { useState, useRef } from 'react';
+import { AppLayout, PageContainer, PageHeader, PrimaryButton, SecondaryButton } from '../components/ui/DesignSystem';
 import './CreateEvent.css';
 
 /* ─────────────────────────────────────────────────────
@@ -30,29 +29,14 @@ const IcoItalic      = ({ size = 16 }) => <Svg size={size}><line x1="19" y1="4" 
 const IcoLink        = ({ size = 16 }) => <Svg size={size}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></Svg>;
 const IcoArrowRight  = ({ size = 16 }) => <Svg size={size}><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></Svg>;
 const IcoCheck       = ({ size = 16 }) => <Svg size={size}><polyline points="20 6 9 17 4 12"/></Svg>;
-const IcoSend        = ({ size = 16 }) => <Svg size={size}><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></Svg>;
-const IcoFb          = ({ size = 16 }) => <Svg size={size}><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></Svg>;
-const IcoTw          = ({ size = 16 }) => <Svg size={size}><path d="M23 3a10.9 10.9 0 0 1-3.14 1.53 4.48 4.48 0 0 0-7.86 3v1A10.66 10.66 0 0 1 3 4s-4 9 5 13a11.64 11.64 0 0 1-7 2c9 5 20 0 20-11.5a4.5 4.5 0 0 0-.08-.83A7.72 7.72 0 0 0 23 3z"/></Svg>;
-const IcoIn          = ({ size = 16 }) => <Svg size={size}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></Svg>;
 
 /* ─────────────────────────────────────────────────────
    DUMMY / STATIC DATA
 ───────────────────────────────────────────────────── */
-const USER = { name: 'Alex Rivera', role: 'Event Manager' };
-
 const CATEGORIES = [
   'Technology & Innovation', 'Business & Finance', 'Design & UX',
   'Marketing', 'Music & Arts', 'Sports & Fitness',
   'Food & Beverage', 'Education', 'Entertainment', 'Health & Wellness',
-];
-
-const NAV_ITEMS = [
-  { id: 'dashboard',      label: 'Dashboard',          Icon: IcoDashboard },
-  { id: 'my-events',      label: 'My Created Events',  Icon: IcoCalendar },
-  { id: 'create',         label: 'Create Event',        Icon: IcoCirclePlus },
-  { id: 'registrations',  label: 'My Registrations',   Icon: IcoUsers },
-  { id: 'notifications',  label: 'Notifications',      Icon: IcoBell },
-  { id: 'settings',       label: 'Settings',           Icon: IcoSettings },
 ];
 
 const TABS = [
@@ -60,57 +44,6 @@ const TABS = [
   { id: 'logistics', label: 'Logistics',    num: 2 },
   { id: 'ticketing', label: 'Ticketing',    num: 3 },
 ];
-
-/* ─────────────────────────────────────────────────────
-   SIDEBAR
-───────────────────────────────────────────────────── */
-const Sidebar = ({ activeNav, onNav, onNavigateOut }) => {
-  const navigate = useNavigate();
-  const { logout } = useContext(AuthContext);
-  return (
-  <aside className="ce-sidebar">
-    {/* User card */}
-    <div className="ce-sidebar__user">
-      <div className="ce-sidebar__avatar">
-        {USER.name.split(' ').map(n => n[0]).join('')}
-      </div>
-      <div className="ce-sidebar__user-info">
-        <div className="ce-sidebar__name">{USER.name}</div>
-        <div className="ce-sidebar__role">{USER.role}</div>
-      </div>
-    </div>
-
-    {/* Nav links */}
-    <nav className="ce-sidebar__nav">
-      {NAV_ITEMS.map(({ id, label, Icon }) => (
-        <button
-          key={id}
-          className={`ce-nav-item${activeNav === id ? ' active' : ''}`}
-          onClick={() => {
-            if (id === 'dashboard') { navigate('/dashboard'); return; }
-            if (id === 'my-events') { if (onNavigateOut) onNavigateOut(); else navigate('/dashboard'); return; }
-            if (id === 'registrations') { navigate('/dashboard'); return; }
-            onNav(id);
-          }}
-        >
-          <Icon size={16} />
-          <span>{label}</span>
-        </button>
-      ))}
-
-      <div className="ce-sidebar__divider" />
-
-      <button
-        className="ce-nav-item ce-nav-item--logout"
-        onClick={() => { logout(); navigate('/'); }}
-      >
-        <IcoLogout size={16} />
-        <span>Logout</span>
-      </button>
-    </nav>
-  </aside>
-  );
-};
 
 /* ─────────────────────────────────────────────────────
    BANNER UPLOAD WIDGET
@@ -174,10 +107,8 @@ const GeneralInfoTab = ({ form, onChange }) => {
 
   return (
     <div className="ce-tab-content">
-      {/* Banner Upload */}
       <BannerUpload preview={form.bannerPreview} onFile={handleFile} />
 
-      {/* Title + Category */}
       <div className="ce-form-card">
         <div className="ce-form-row">
           <div className="ce-field ce-field--grow">
@@ -209,7 +140,6 @@ const GeneralInfoTab = ({ form, onChange }) => {
           </div>
         </div>
 
-        {/* Description + Max Participants */}
         <div className="ce-form-row ce-form-row--top">
           <div className="ce-field ce-field--grow">
             <div className="ce-label-row">
@@ -258,7 +188,6 @@ const GeneralInfoTab = ({ form, onChange }) => {
         </div>
       </div>
 
-      {/* Time & Location */}
       <div className="ce-section-card">
         <h3 className="ce-section-title ce-section-title--icon">
           <IcoMapPin size={15} /> Time &amp; Location
@@ -301,37 +230,30 @@ const GeneralInfoTab = ({ form, onChange }) => {
             />
           </div>
           <div className="ce-field ce-field--half">
-            <div className={`ce-map-placeholder${form.venue ? ' has-venue' : ''}`}>
-              <IcoMap size={22} />
-              <span>{form.venue ? `Showing: ${form.venue}` : 'Select a location to see map'}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Registration Details */}
-      <div className="ce-section-card">
-        <h3 className="ce-section-title ce-section-title--icon">
-          <IcoUsers size={15} /> Registration Details
-        </h3>
-        <div className="ce-form-row">
-          <div className="ce-field ce-field--half">
             <label className="ce-label" htmlFor="ce-deadline">Registration Deadline</label>
             <input
               id="ce-deadline"
               className="ce-input"
-              type="date"
+              type="datetime-local"
               value={form.regDeadline}
               onChange={e => onChange('regDeadline', e.target.value)}
             />
           </div>
+        </div>
+      </div>
+
+      <div className="ce-section-card">
+        <h3 className="ce-section-title ce-section-title--icon">
+          <IcoUsers size={15} /> Organizer &amp; Contact Details
+        </h3>
+        <div className="ce-form-row">
           <div className="ce-field ce-field--half">
-            <label className="ce-label" htmlFor="ce-email">Contact Email for Attendees</label>
+            <label className="ce-label" htmlFor="ce-email">Contact Email</label>
             <input
               id="ce-email"
               className="ce-input"
               type="email"
-              placeholder="support@compilvision.com"
+              placeholder="e.g. support@compilvision.com"
               value={form.contactEmail}
               onChange={e => onChange('contactEmail', e.target.value)}
             />
@@ -346,90 +268,33 @@ const GeneralInfoTab = ({ form, onChange }) => {
    PLACEHOLDER TAB CONTENT
 ───────────────────────────────────────────────────── */
 const PlaceholderTab = ({ icon: Icon, title, description }) => (
-  <div className="ce-tab-content ce-placeholder-content">
-    <div className="ce-placeholder-inner">
-      <div className="ce-placeholder-icon"><Icon size={36} /></div>
-      <h3 className="ce-placeholder-title">{title}</h3>
+  <div className="ce-tab-content ce-tab-content--placeholder">
+    <div className="ce-placeholder-card">
+      <div className="ce-placeholder-icon-wrap"><Icon size={24} /></div>
+      <h3 className="ce-placeholder-title">{title} Section</h3>
       <p className="ce-placeholder-desc">{description}</p>
     </div>
   </div>
 );
 
 /* ─────────────────────────────────────────────────────
-   FOOTER  (matches EventDetails footer design)
+   MAIN COMPONENT
 ───────────────────────────────────────────────────── */
-const Footer = () => {
-  const [email, setEmail] = useState('');
-  const [subbed, setSubbed] = useState(false);
-  const handleSub = e => {
-    e.preventDefault();
-    if (email.trim()) { setSubbed(true); setEmail(''); setTimeout(() => setSubbed(false), 3000); }
-  };
-  return (
-    <footer className="ce-footer">
-      <div className="ce-footer__inner">
-        <div className="ce-footer__grid">
-          <div className="ce-footer__brand">
-            <div className="ce-footer__logo">CompilVision</div>
-            <p>Simplifying high-stakes event coordination for the digital age.</p>
-          </div>
-          <div>
-            <h4 className="ce-footer__heading">Product</h4>
-            <ul className="ce-footer__list">
-              {['Features', 'Pricing', 'Security'].map(l => (
-                <li key={l}><a href="/" className="ce-footer__link">{l}</a></li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="ce-footer__heading">Company</h4>
-            <ul className="ce-footer__list">
-              {['About Us', 'Careers', 'Contact'].map(l => (
-                <li key={l}><a href="/" className="ce-footer__link">{l}</a></li>
-              ))}
-            </ul>
-          </div>
-          <div>
-            <h4 className="ce-footer__heading">Legal</h4>
-            <ul className="ce-footer__list">
-              {['Privacy Policy', 'Terms of Service'].map(l => (
-                <li key={l}><a href="/" className="ce-footer__link">{l}</a></li>
-              ))}
-            </ul>
-          </div>
-        </div>
-        <div className="ce-footer__bottom">
-          <span>© {new Date().getFullYear()} CompilVision. All rights reserved.</span>
-          <div className="ce-footer__socials">
-            {[IcoFb, IcoTw, IcoIn].map((Ic, i) => (
-              <a key={i} href="/" className="ce-footer__social" aria-label="social"><Ic size={14} /></a>
-            ))}
-          </div>
-        </div>
-      </div>
-    </footer>
-  );
-};
-
-/* ─────────────────────────────────────────────────────
-   MAIN PAGE COMPONENT
-───────────────────────────────────────────────────── */
-const CreateEvent = ({ onPublish, onCancel, onNavigateToEdit }) => {
-  const [activeTab,  setActiveTab]  = useState('general');
-  const [activeNav,  setActiveNav]  = useState('create');
+const CreateEvent = ({ onPublish, onCancel }) => {
+  const [activeTab, setActiveTab] = useState('general');
   const [draftSaved, setDraftSaved] = useState(false);
   const [form, setForm] = useState({
-    bannerPreview:   null,
-    title:           '',
-    category:        '',
-    description:     '',
-    maxParticipants: 100,
-    enableWaitlist:  false,
-    startDate:       '',
-    endDate:         '',
-    venue:           '',
-    regDeadline:     '',
-    contactEmail:    '',
+    bannerPreview:    '',
+    title:            '',
+    category:         '',
+    description:      '',
+    maxParticipants:  100,
+    enableWaitlist:   true,
+    startDate:        '',
+    endDate:          '',
+    venue:            '',
+    regDeadline:      '',
+    contactEmail:     '',
   });
 
   const updateField = (key, val) => setForm(f => ({ ...f, [key]: val }));
@@ -444,43 +309,30 @@ const CreateEvent = ({ onPublish, onCancel, onNavigateToEdit }) => {
   };
 
   const handlePublish = () => {
-    // Ready to navigate to EventDetails when routing is wired up
     if (typeof onPublish === 'function') onPublish(form);
   };
 
   return (
-    <div className="ce-root">
-
-      {/* ── Top Header ── */}
-      <header className="ce-header">
-        <div className="ce-header__logo">CompilVision</div>
-        <h1 className="ce-header__title">New Event</h1>
-        <div className="ce-header__actions">
-          <button className="ce-btn-ghost" onClick={handleCancel}>Cancel</button>
-          <button
-            className={`ce-btn-draft${draftSaved ? ' saved' : ''}`}
-            onClick={handleSaveDraft}
-          >
-            {draftSaved
-              ? <><IcoCheck size={13} /> Saved!</>
-              : 'Save Draft'
-            }
-          </button>
-        </div>
-      </header>
-
-      {/* ── Body: Sidebar + Main ── */}
-      <div className="ce-body">
-
-        <Sidebar
-          activeNav={activeNav}
-          onNav={(id) => setActiveNav(id)}
-          onNavigateOut={onNavigateToEdit}
+    <AppLayout activeItem="Create Event">
+      <PageContainer>
+        <PageHeader
+          title="Create New Event"
+          description="Design, structure, and announce your hosted experience."
+          action={
+            <div style={{ display: 'flex', gap: '12px' }}>
+              <SecondaryButton onClick={handleSaveDraft}>
+                {draftSaved ? 'Saved!' : 'Save Draft'}
+              </SecondaryButton>
+              <PrimaryButton onClick={handlePublish}>
+                Publish Event
+              </PrimaryButton>
+            </div>
+          }
         />
 
-        <div className="ce-main">
+        <div className="ce-main" style={{ padding: 0 }}>
           {/* Tab bar */}
-          <div className="ce-tab-bar">
+          <div className="ce-tab-bar" style={{ marginBottom: '24px' }}>
             {TABS.map(tab => (
               <button
                 key={tab.id}
@@ -512,25 +364,8 @@ const CreateEvent = ({ onPublish, onCancel, onNavigateToEdit }) => {
             />
           )}
         </div>
-      </div>
-
-      {/* ── Bottom Action Bar ── */}
-      <div className="ce-action-bar">
-        <div className="ce-action-bar__left">
-          <IcoInfo size={14} />
-          <span>You are logged in as <strong>{USER.name}</strong></span>
-        </div>
-        <div className="ce-action-bar__right">
-          <button className="ce-btn-ghost" onClick={handleCancel}>Cancel</button>
-          <button className="ce-btn-publish" onClick={handlePublish}>
-            Publish Event
-            <IcoArrowRight size={15} />
-          </button>
-        </div>
-      </div>
-
-      <Footer />
-    </div>
+      </PageContainer>
+    </AppLayout>
   );
 };
 

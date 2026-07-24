@@ -1,20 +1,20 @@
 :root {
   /* ── Public pages design tokens ── */
-  --primary-color: #F4B400;
-  --primary-hover: #E0A300;
-  --primary-light: #FFFBEB;
-  --dark-color: #1F2937;
+  --primary-color: #F5C451;
+  --primary-hover: #E5B239;
+  --primary-light: #FEFBF0;
+  --dark-color: #111827;
   --dark-light: #374151;
-  --dark-hover: #111827;
+  --dark-hover: #030712;
   --gray-text: #6B7280;
   --gray-light: #9CA3AF;
   --border-color: #E5E7EB;
-  --bg-color: #F8F9FB;
+  --bg-color: #F8FAFC;
   --card-bg: #FFFFFF;
-  --card-radius: 16px;
+  --card-radius: 20px;
   --button-radius: 12px;
-  --shadow-soft: 0 4px 20px rgba(31, 41, 55, 0.04);
-  --shadow-medium: 0 10px 30px rgba(31, 41, 55, 0.08);
+  --shadow-soft: 0 4px 20px rgba(17, 24, 39, 0.03);
+  --shadow-medium: 0 10px 30px rgba(17, 24, 39, 0.06);
   --font-main: 'Inter', system-ui, -apple-system, sans-serif;
   --font-heading: 'Outfit', system-ui, -apple-system, sans-serif;
   --max-width: 1200px;

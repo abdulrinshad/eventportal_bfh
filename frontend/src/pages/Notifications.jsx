@@ -1,13 +1,12 @@
 import React, { useState } from 'react';
-import Sidebar from '../components/Sidebar/Sidebar';
-import DashboardFooter from '../components/dashboard/DashboardFooter';
-import { FiBell, FiCalendar, FiUsers, FiCheck, FiTrash2 } from 'react-icons/fi';
-import './Profile.css';
+import { AppLayout, PageContainer, PageHeader, ContentCard, PrimaryButton, EmptyState } from '../components/ui/DesignSystem';
+import { FiBell, FiCalendar, FiUsers, FiCheck, FiTrash2, FiInfo } from 'react-icons/fi';
 
 const mockNotifications = [
   {
     id: 1,
     type: 'event',
+    group: 'Today',
     title: 'Global Tech Summit 2026 is LIVE',
     message: 'Your event just went live. Share it with your audience!',
     time: '2 minutes ago',
@@ -17,6 +16,7 @@ const mockNotifications = [
   {
     id: 2,
     type: 'registration',
+    group: 'Today',
     title: '12 new participants registered',
     message: 'AI & Deep Learning Workshop received 12 new sign-ups today.',
     time: '1 hour ago',
@@ -26,6 +26,7 @@ const mockNotifications = [
   {
     id: 3,
     type: 'reminder',
+    group: 'Today',
     title: 'Event reminder: UI/UX Masterclass',
     message: 'Your registered event starts in 3 days. Download your ticket!',
     time: '3 hours ago',
@@ -35,11 +36,22 @@ const mockNotifications = [
   {
     id: 4,
     type: 'event',
+    group: 'Yesterday',
     title: 'Registration confirmed',
     message: 'You are registered for Annual Creators & Design Awards 2026.',
     time: 'Yesterday',
     read: true,
-    icon: <FiCalendar size={18} />,
+    icon: <FiCheck size={18} />,
+  },
+  {
+    id: 5,
+    type: 'info',
+    group: 'Earlier',
+    title: 'Custom domain linked',
+    message: 'Your domain summit.compilvision.com points successfully to this system.',
+    time: '3 days ago',
+    read: true,
+    icon: <FiInfo size={18} />,
   },
 ];
 
@@ -56,87 +68,141 @@ function Notifications() {
 
   const unreadCount = notifications.filter((n) => !n.read).length;
 
+  const groups = ['Today', 'Yesterday', 'Earlier'];
+
   return (
-    <div className="dashboard-page-layout">
-      <Sidebar />
-      <main className="dashboard-main-content">
-        <div className="profile-page">
-
-          <div className="profile-header">
-            <div>
-              <h1 className="profile-page-title">Notifications</h1>
-              <p className="profile-page-subtitle">
-                {unreadCount > 0
-                  ? ('You have ' + unreadCount + ' unread notification' + (unreadCount > 1 ? 's' : '') + '.')
-                  : 'All caught up! No new notifications.'}
-              </p>
-            </div>
-            {unreadCount > 0 && (
-              <button className="profile-edit-btn" onClick={markAllRead}>
+    <AppLayout activeItem="Notifications">
+      <PageContainer size="lg">
+        <PageHeader
+          title="Notification Center"
+          description={
+            unreadCount > 0
+              ? `You have ${unreadCount} unread update${unreadCount > 1 ? 's' : ''} requiring attention.`
+              : 'All caught up! No unread notifications.'
+          }
+          action={
+            unreadCount > 0 && (
+              <PrimaryButton onClick={markAllRead}>
                 <FiCheck /> Mark all read
-              </button>
-            )}
-          </div>
+              </PrimaryButton>
+            )
+          }
+        />
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
-            {notifications.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '64px 32px', background: 'var(--bg-card)', borderRadius: 'var(--border-radius-lg)', border: '1px dashed var(--border-color)' }}>
-                <FiBell size={40} style={{ color: 'var(--text-muted)', marginBottom: 16 }} />
-                <p style={{ color: 'var(--text-secondary)' }}>No notifications yet.</p>
-              </div>
-            ) : (
-              notifications.map((n) => (
-                <div
-                  key={n.id}
-                  style={{
-                    display: 'flex',
-                    alignItems: 'flex-start',
-                    gap: 16,
-                    background: n.read ? 'var(--bg-card)' : 'rgba(245,196,81,0.07)',
+        {notifications.length === 0 ? (
+          <EmptyState
+            title="All clear"
+            description="No notifications yet. We'll let you know when something important happens."
+          />
+        ) : (
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+            {groups.map((groupName) => {
+              const groupItems = notifications.filter((n) => n.group === groupName);
+              if (groupItems.length === 0) return null;
 
-                    borderRadius: 'var(--border-radius-md)',
-                    padding: '18px 20px',
-                    transition: 'all 0.2s',
-                    boxShadow: 'var(--shadow-sm)',
-                  }}
-                >
-                  <div style={{
-                    width: 40, height: 40, borderRadius: '50%',
-                    background: n.read ? 'var(--border-color-light)' : 'var(--accent-yellow-light)',
-                    color: n.read ? 'var(--text-muted)' : 'var(--accent-yellow)',
-                    display: 'flex', alignItems: 'center', justifyContent: 'center',
-                    flexShrink: 0,
-                  }}>
-                    {n.icon}
-                  </div>
-                  <div style={{ flex: 1, minWidth: 0 }}>
-                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
-                      <h4 style={{ fontFamily: 'Outfit, sans-serif', fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', margin: 0 }}>
-                        {n.title}
-                        {!n.read && <span style={{ display: 'inline-block', width: 7, height: 7, background: 'var(--accent-yellow)', borderRadius: '50%', marginLeft: 8, verticalAlign: 'middle' }} />}
-                      </h4>
-                      <span style={{ fontSize: 12, color: 'var(--text-muted)', whiteSpace: 'nowrap' }}>{n.time}</span>
-                    </div>
-                    <p style={{ fontSize: 13, color: 'var(--text-secondary)', margin: '4px 0 0', lineHeight: 1.5 }}>{n.message}</p>
-                  </div>
-                  <button
-                    onClick={() => deleteNotification(n.id)}
-                    title="Dismiss"
-                    style={{ color: 'var(--text-muted)', background: 'none', border: 'none', cursor: 'pointer', padding: 4, borderRadius: 6, transition: 'color 0.15s' }}
-                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--danger-color)'}
-                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--text-muted)'}
+              return (
+                <div key={groupName}>
+                  {/* Group Header */}
+                  <h3
+                    style={{
+                      fontSize: '13px',
+                      fontWeight: '700',
+                      color: '#94A3B8',
+                      letterSpacing: '1.2px',
+                      textTransform: 'uppercase',
+                      marginBottom: '16px',
+                      fontFamily: 'var(--font-heading)',
+                    }}
                   >
-                    <FiTrash2 size={15} />
-                  </button>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
+                    {groupName}
+                  </h3>
 
-        <DashboardFooter />
-      </main>
-    </div>
+                  {/* Group items container */}
+                  <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                    {groupItems.map((n) => (
+                      <div
+                        key={n.id}
+                        style={{
+                          display: 'flex',
+                          alignItems: 'flex-start',
+                          gap: '16px',
+                          background: n.read ? '#FFFFFF' : '#FFFDF5',
+                          border: `1px solid ${n.read ? '#E5E7EB' : 'rgba(245, 196, 81, 0.35)'}`,
+                          borderRadius: '16px',
+                          padding: '18px 20px',
+                          transition: 'all 0.2s',
+                          boxShadow: 'var(--shadow-soft)',
+                          position: 'relative',
+                        }}
+                      >
+                        <div
+                          style={{
+                            width: '40px',
+                            height: '40px',
+                            borderRadius: '50%',
+                            background: n.read ? '#F1F5F9' : '#FEFBF0',
+                            color: n.read ? '#6B7280' : '#F5C451',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            flexShrink: 0,
+                            border: n.read ? 'none' : '1.5px solid rgba(245, 196, 81, 0.25)',
+                          }}
+                        >
+                          {n.icon}
+                        </div>
+                        <div style={{ flex: 1, minWidth: 0 }}>
+                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: '12px' }}>
+                            <h4 style={{ fontSize: '15px', fontWeight: '700', color: '#111827', margin: 0, fontFamily: 'var(--font-heading)' }}>
+                              {n.title}
+                              {!n.read && (
+                                <span
+                                  style={{
+                                    display: 'inline-block',
+                                    width: '7px',
+                                    height: '7px',
+                                    background: '#F5C451',
+                                    borderRadius: '50%',
+                                    marginLeft: '8px',
+                                    verticalAlign: 'middle',
+                                  }}
+                                />
+                              )}
+                            </h4>
+                            <span style={{ fontSize: '12px', color: '#94A3B8', whiteSpace: 'nowrap' }}>{n.time}</span>
+                          </div>
+                          <p style={{ fontSize: '13px', color: '#475569', margin: '4px 0 0 0', lineHeight: 1.5 }}>
+                            {n.message}
+                          </p>
+                        </div>
+                        <button
+                          onClick={() => deleteNotification(n.id)}
+                          title="Dismiss"
+                          style={{
+                            color: '#94A3B8',
+                            background: 'none',
+                            border: 'none',
+                            cursor: 'pointer',
+                            padding: '4px',
+                            borderRadius: '6px',
+                            transition: 'color 0.15s',
+                            display: 'flex',
+                          }}
+                          onMouseEnter={(e) => (e.currentTarget.style.color = '#EF4444')}
+                          onMouseLeave={(e) => (e.currentTarget.style.color = '#94A3B8')}
+                        >
+                          <FiTrash2 size={15} />
+                        </button>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        )}
+      </PageContainer>
+    </AppLayout>
   );
 }
 

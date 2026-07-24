@@ -1,51 +1,59 @@
-import React, { useContext } from 'react';
+import React from 'react';
 import { BrowserRouter, Routes, Route, Navigate, useNavigate } from 'react-router-dom';
-import { AuthProvider, AuthContext } from './context/AuthContext';
+import { AuthProvider } from './context/AuthContext';
 import { EventProvider } from './context/EventContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 
-import EventDetails        from './pages/EventDetails';
-import CreateEvent         from './pages/CreateEvent';
-import EditEvent           from './pages/EditEvent';
-import RegistrationSuccess from './pages/RegistrationSuccess';
-import Dashboard           from './pages/Dashboard';
-import Login               from './pages/Login';
-import Profile             from './pages/Profile';
-import Notifications       from './pages/Notifications';
-import Settings            from './pages/Settings';
 import LandingPage from './pages/LandingPage';
 
-/**
- * SmartRoot — Redirects based on auth state.
- * Logged-in users → /dashboard  |  Guests → /events/1
- */
-function SmartRoot() {
-  const { user, loading } = useContext(AuthContext);
-  if (loading) return null;
-  return <Navigate to={user ? '/dashboard' : '/events/1'} replace />;
-}
+import EventDetails from './pages/EventDetails';
+import CreateEvent from './pages/CreateEvent';
+import EditEvent from './pages/EditEvent';
+import RegistrationSuccess from './pages/RegistrationSuccess';
+import Dashboard from './pages/Dashboard';
+
+import Login from './pages/Login';
+import Register from './pages/Register';
+import ForgotPassword from './pages/ForgotPassword';
+import OTPVerification from './pages/OTPVerification';
+import ResetPassword from './pages/ResetPassword';
+
+import Profile from './pages/Profile';
+import Notifications from './pages/Notifications';
+import Settings from './pages/Settings';
+
+import About from './pages/About';
+import Contact from './pages/Contact';
+import HelpCenter from './pages/HelpCenter';
+import Home from './pages/Home';
+import ExploreEvents from './pages/ExploreEvents';
+
+import MyCreatedEvents from './pages/MyCreatedEvents';
+import MyRegisteredEvents from './pages/MyRegisteredEvents';
 
 /**
- * Wrapper for RegistrationSuccess — proper useNavigate callbacks.
+ * Wrapper for RegistrationSuccess
  */
 function RegistrationSuccessWrapper() {
   const navigate = useNavigate();
+
   return (
     <RegistrationSuccess
-      onBackToEvents={() => navigate('/events/1')}
-      onViewRegistrations={() => navigate('/dashboard')}
+      onBackToEvents={() => navigate('/events')}
+      onViewRegistrations={() => navigate('/my-registrations')}
     />
   );
 }
 
 /**
- * Wrapper for CreateEvent — proper useNavigate callbacks.
+ * Wrapper for CreateEvent
  */
 function CreateEventWrapper() {
   const navigate = useNavigate();
+
   return (
     <CreateEvent
-      onPublish={() => navigate('/dashboard')}
+      onPublish={() => navigate('/my-created-events')}
       onCancel={() => navigate(-1)}
       onNavigateToEdit={() => navigate('/edit/new')}
     />
@@ -53,13 +61,14 @@ function CreateEventWrapper() {
 }
 
 /**
- * Wrapper for EditEvent — proper useNavigate callbacks.
+ * Wrapper for EditEvent
  */
 function EditEventWrapper() {
   const navigate = useNavigate();
+
   return (
     <EditEvent
-      onSave={() => navigate('/dashboard')}
+      onSave={() => navigate('/my-created-events')}
       onDiscard={() => navigate(-1)}
       onNavigateToCreate={() => navigate('/create')}
     />
@@ -67,39 +76,65 @@ function EditEventWrapper() {
 }
 
 /**
- * App — Root component with full React Router setup.
- *
- * Public routes:
- *   /                  → SmartRoot (auth-aware redirect)
- *   /events/:id        → EventDetails
- *   /login             → Login / Register page
- *   /register          → Redirects to /login
- *   /registration-success → RegistrationSuccess
- *
- * Protected routes (require login):
- *   /dashboard     → Dashboard (Sidebar + sub-views)
- *   /profile       → Profile page
- *   /notifications → Notifications page
- *   /settings      → Settings page
- *   /create        → CreateEvent
- *   /edit/:id      → EditEvent
+ * Wrapper for MyCreatedEvents
  */
+function MyCreatedEventsWrapper() {
+  const navigate = useNavigate();
+
+  return (
+    <MyCreatedEvents
+      onViewParticipants={() => navigate('/dashboard')}
+      onViewEvent={(event) => navigate(`/events/${event.id}`)}
+      onEditEvent={(event) => navigate(`/edit/${event.id}`)}
+      onCreateEvent={() => navigate('/create')}
+    />
+  );
+}
+
+/**
+ * Wrapper for MyRegisteredEvents
+ */
+function MyRegisteredEventsWrapper() {
+  const navigate = useNavigate();
+
+  return (
+    <MyRegisteredEvents
+      onViewHistory={() => navigate('/dashboard')}
+      onViewDetails={(id) => navigate(`/events/${id}`)}
+    />
+  );
+}
+
 function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
         <EventProvider>
           <Routes>
-            {/* ── Smart Root ── */}
+
+            {/* Public Routes */}
             <Route path="/" element={<LandingPage />} />
+            <Route path="/home" element={<Home />} />
+            <Route path="/events" element={<ExploreEvents />} />
+            <Route path="/events/:id" element={<EventDetails />} />
 
-            {/* ── Public Routes ── */}
-            <Route path="/events/:id"           element={<EventDetails />} />
-            <Route path="/login"                element={<Login />} />
-            <Route path="/register"             element={<Navigate to="/login" replace />} />
-            <Route path="/registration-success" element={<RegistrationSuccessWrapper />} />
+            <Route path="/about" element={<About />} />
+            <Route path="/contact" element={<Contact />} />
+            <Route path="/help-center" element={<HelpCenter />} />
 
-            {/* ── Protected Routes ── */}
+            <Route path="/login" element={<Login />} />
+            <Route path="/register" element={<Register />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/otp-verification" element={<OTPVerification />} />
+            <Route path="/reset-password" element={<ResetPassword />} />
+
+            <Route
+              path="/registration-success"
+              element={<RegistrationSuccessWrapper />}
+            />
+
+            {/* Protected Routes */}
+
             <Route
               path="/dashboard"
               element={
@@ -108,6 +143,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/profile"
               element={
@@ -116,6 +152,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/notifications"
               element={
@@ -124,6 +161,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/settings"
               element={
@@ -132,6 +170,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/create"
               element={
@@ -140,6 +179,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+
             <Route
               path="/edit/:id"
               element={
@@ -149,8 +189,28 @@ function App() {
               }
             />
 
-            {/* ── Fallback ── */}
+            <Route
+              path="/my-created-events"
+              element={
+                <ProtectedRoute>
+                  <MyCreatedEventsWrapper />
+                </ProtectedRoute>
+              }
+            />
+
+            <Route
+              path="/my-registrations"
+              element={
+                <ProtectedRoute>
+                  <MyRegisteredEventsWrapper />
+                </ProtectedRoute>
+              }
+            />
+
+            {/* Fallback */}
+
             <Route path="*" element={<Navigate to="/" replace />} />
+
           </Routes>
         </EventProvider>
       </AuthProvider>
@@ -159,4 +219,3 @@ function App() {
 }
 
 export default App;
-

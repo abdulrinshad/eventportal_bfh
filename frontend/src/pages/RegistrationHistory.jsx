@@ -1,12 +1,8 @@
 import React, { useState } from 'react';
-import { FiSearch, FiChevronRight } from 'react-icons/fi';
+import { FiSearch, FiChevronRight, FiTrendingUp } from 'react-icons/fi';
 import SpentSummaryCard from '../components/dashboard/SpentSummaryCard';
-import HistoryFilters from '../components/dashboard/HistoryFilters';
-import RegistrationHistoryTable from '../components/dashboard/RegistrationHistoryTable';
-import Pagination from '../components/dashboard/Pagination';
-import DashboardFooter from '../components/dashboard/DashboardFooter';
+import { PageContainer, PageHeader, SearchBar, FilterDropdown, DataTable, SecondaryButton, StatusBadge } from '../components/ui/DesignSystem';
 import { registrationHistoryData } from '../data/registrationHistory';
-import './RegistrationHistory.css';
 
 function RegistrationHistory({ onBackToRegistrations }) {
   const [history, setHistory] = useState(registrationHistoryData);
@@ -44,76 +40,70 @@ function RegistrationHistory({ onBackToRegistrations }) {
   });
 
   return (
-    <div className="registration-history-page">
-      <div className="page-main-container">
-        
-        <nav className="breadcrumb-nav" aria-label="Breadcrumb">
-          <button className="breadcrumb-link" onClick={onBackToRegistrations}>
-            My Registered Events
-          </button>
-          <FiChevronRight className="breadcrumb-separator" />
-          <span className="breadcrumb-current" aria-current="page">
-            Registration History
-          </span>
-        </nav>
+    <PageContainer>
+      {/* Breadcrumb */}
+      <nav style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#6B7280', marginBottom: '16px' }} aria-label="Breadcrumb">
+        <button
+          onClick={onBackToRegistrations}
+          style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#2563EB', fontWeight: '600', padding: 0 }}
+        >
+          My Registered Events
+        </button>
+        <FiChevronRight size={14} />
+        <span style={{ color: '#475569', fontWeight: '500' }}>
+          Registration History
+        </span>
+      </nav>
 
-        <header className="history-page-header">
-          <div className="header-text-group">
-            <h1 className="header-title">Registration History</h1>
-            <p className="header-subtitle">
-              Review and manage your past event registrations and financial receipts.
-            </p>
-          </div>
+      <PageHeader
+        title="Registration History"
+        description="Review and manage your past event registrations and financial receipts."
+      />
 
-          <div className="header-right-controls">
-            <div className="search-input-wrapper">
-              <FiSearch className="search-icon" />
-              <input
-                type="text"
-                className="search-input"
-                placeholder="Search events..."
-                value={searchTerm}
-                onChange={(e) => setSearchTerm(e.target.value)}
-              />
-            </div>
-            
-            <img 
-              src="https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=100&auto=format&fit=crop&q=80" 
-              alt="User Profile" 
-              className="user-profile-avatar"
-            />
-          </div>
-        </header>
+      <SpentSummaryCard />
 
-        <div className="history-page-content">
-          <SpentSummaryCard />
-
-          <section className="table-wrapper-section">
-            <HistoryFilters
-              statusFilter={statusFilter}
-              setStatusFilter={setStatusFilter}
-              fromDate={fromDate}
-              setFromDate={setFromDate}
-              toDate={toDate}
-              setToDate={setToDate}
-            />
-
-            <RegistrationHistoryTable
-              history={filteredHistory}
-            />
-
-            <Pagination
-              currentPage={currentPage}
-              totalPages={3}
-              onPageChange={setCurrentPage}
-            />
-          </section>
-        </div>
-
+      {/* Filters Toolbar */}
+      <div style={{ display: 'flex', gap: '16px', marginBottom: '20px', flexWrap: 'wrap', alignItems: 'center' }}>
+        <SearchBar
+          value={searchTerm}
+          onChange={(e) => setSearchTerm(e.target.value)}
+          placeholder="Search by event title..."
+        />
+        <FilterDropdown
+          label="Status"
+          value={statusFilter}
+          onChange={(e) => setStatusFilter(e.target.value)}
+          options={[
+            { label: 'All Statuses', value: 'all' },
+            { label: 'Confirmed', value: 'confirmed' },
+            { label: 'Waitlisted', value: 'waitlisted' },
+            { label: 'Refunded', value: 'refunded' },
+          ]}
+        />
       </div>
 
-      <DashboardFooter />
-    </div>
+      <DataTable
+        headers={['Event Name', 'Registration Date', 'Amount Paid', 'Ticket Reference', 'Status']}
+        pagination={{
+          currentPage: currentPage,
+          totalPages: 3,
+          onPrev: () => setCurrentPage((p) => Math.max(p - 1, 1)),
+          onNext: () => setCurrentPage((p) => Math.min(p + 1, 3)),
+        }}
+      >
+        {filteredHistory.map((item) => (
+          <tr key={item.id} style={{ borderBottom: '1px solid #E5E7EB' }}>
+            <td style={{ padding: '14px 20px', fontWeight: '600', color: '#111827' }}>{item.eventName}</td>
+            <td style={{ padding: '14px 20px', color: '#475569' }}>{item.registrationDate}</td>
+            <td style={{ padding: '14px 20px', fontWeight: '600', color: '#111827' }}>{item.amountPaid}</td>
+            <td style={{ padding: '14px 20px', fontFamily: 'monospace', color: '#6B7280' }}>{item.ticketReference}</td>
+            <td style={{ padding: '14px 20px' }}>
+              <StatusBadge status={item.status === 'Confirmed' ? 'live' : item.status === 'Waitlisted' ? 'draft' : 'past'} />
+            </td>
+          </tr>
+        ))}
+      </DataTable>
+    </PageContainer>
   );
 }
 

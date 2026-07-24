@@ -1,11 +1,7 @@
-﻿import React, { useState, useContext } from 'react';
+import React, { useState, useContext } from 'react';
 import { AuthContext } from '../context/AuthContext';
-import Sidebar from '../components/Sidebar/Sidebar';
-import DashboardFooter from '../components/dashboard/DashboardFooter';
-import {
-  FiUser, FiMail, FiCalendar, FiEdit2, FiSave, FiX, FiCamera
-} from 'react-icons/fi';
-import './Profile.css';
+import { AppLayout, PageContainer, PageHeader, ContentCard, PrimaryButton, SecondaryButton, UserAvatar } from '../components/ui/DesignSystem';
+import { FiUser, FiMail, FiCalendar, FiEdit2, FiSave, FiX, FiCamera, FiMapPin, FiAward, FiEye } from 'react-icons/fi';
 
 function Profile() {
   const { user, updateProfile } = useContext(AuthContext);
@@ -13,8 +9,8 @@ function Profile() {
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [form, setForm] = useState({
-    username: user?.username || '',
-    bio: user?.bio || '',
+    username: user?.username || 'Alex Rivera',
+    bio: user?.bio || 'Senior Event Coordinator & Technical Lead specializing in coordinating high-stakes tech summits, developer keynotes, and global hackathons.',
     avatar: user?.avatar || '',
   });
 
@@ -38,8 +34,8 @@ function Profile() {
 
   const handleCancel = () => {
     setForm({
-      username: user?.username || '',
-      bio: user?.bio || '',
+      username: user?.username || 'Alex Rivera',
+      bio: user?.bio || 'Senior Event Coordinator & Technical Lead specializing in coordinating high-stakes tech summits, developer keynotes, and global hackathons.',
       avatar: user?.avatar || '',
     });
     setEditing(false);
@@ -48,158 +44,189 @@ function Profile() {
   if (!user) return null;
 
   return (
-    <div className="dashboard-page-layout">
-      <Sidebar />
-      <main className="dashboard-main-content">
-        <div className="profile-page">
-
-          {/* Header */}
-          <div className="profile-header">
-            <div>
-              <h1 className="profile-page-title">Profile</h1>
-              <p className="profile-page-subtitle">Manage your personal information and preferences.</p>
-            </div>
-            {!editing && (
-              <button className="profile-edit-btn" onClick={() => setEditing(true)}>
+    <AppLayout activeItem="Profile">
+      <PageContainer size="xl">
+        <PageHeader
+          title="Profile"
+          description="Manage your professional presence and coordination bio."
+          action={
+            !editing ? (
+              <PrimaryButton onClick={() => setEditing(true)}>
                 <FiEdit2 /> Edit Profile
-              </button>
-            )}
+              </PrimaryButton>
+            ) : (
+              <div style={{ display: 'flex', gap: '12px' }}>
+                <SecondaryButton onClick={handleCancel}>Cancel</SecondaryButton>
+                <PrimaryButton onClick={handleSave} loading={saving}>
+                  Save Changes
+                </PrimaryButton>
+              </div>
+            )
+          }
+        />
+
+        {saved && (
+          <div style={{ background: '#DCFCE7', border: '1px solid #15803D', borderRadius: '12px', padding: '12px 16px', color: '#15803D', fontWeight: '600', marginBottom: '24px' }}>
+            ✓ Profile updated successfully!
           </div>
+        )}
 
-          {saved && (
-            <div className="profile-save-toast">
-              ✅ Profile updated successfully!
-            </div>
-          )}
+        {/* LinkedIn style profile banner card */}
+        <ContentCard style={{ padding: '0px', overflow: 'hidden', marginBottom: '28px' }}>
+          {/* Cover Photo */}
+          <div
+            style={{
+              height: '180px',
+              backgroundImage: "url('https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=1200&q=80')",
+              backgroundSize: 'cover',
+              backgroundPosition: 'center',
+              position: 'relative',
+            }}
+          />
 
-          <div className="profile-content-grid">
-            {/* Avatar card */}
-            <div className="profile-avatar-card">
-              <div className="profile-avatar-wrapper">
-                <img
-                  src={form.avatar || user.avatar}
-                  alt={user.username}
-                  className="profile-avatar-img"
-                  onError={(e) => {
-                    e.target.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80';
-                  }}
-                />
-                {editing && (
-                  <button className="profile-avatar-change-btn" title="Change avatar URL below">
-                    <FiCamera size={16} />
-                  </button>
-                )}
-              </div>
-              <h2 className="profile-name">{user.username}</h2>
-              <p className="profile-email">{user.email}</p>
-              <div className="profile-joined">
-                <FiCalendar size={14} />
-                <span>Joined {user.joinedDate || 'Recently'}</span>
-              </div>
+          {/* Profile Header Block */}
+          <div style={{ padding: '24px 32px', position: 'relative' }}>
+            
+            {/* Overlapping Avatar */}
+            <div style={{ position: 'absolute', top: '-60px', left: '32px', border: '4px solid #FFFFFF', borderRadius: '50%', overflow: 'hidden', background: '#FFFFFF' }}>
+              <UserAvatar src={form.avatar || user.avatar} name={form.username} size={110} />
             </div>
 
-            {/* Info card */}
-            <div className="profile-info-card">
-              <h3 className="profile-section-title">Account Information</h3>
-
-              <div className="profile-field">
-                <label className="profile-label">
-                  <FiUser size={14} /> Full Name
-                </label>
-                {editing ? (
-                  <input
-                    className="profile-input"
-                    name="username"
-                    value={form.username}
-                    onChange={handleChange}
-                    placeholder="Your full name"
-                  />
-                ) : (
-                  <span className="profile-value">{user.username}</span>
-                )}
-              </div>
-
-              <div className="profile-field">
-                <label className="profile-label">
-                  <FiMail size={14} /> Email Address
-                </label>
-                <span className="profile-value profile-value-muted">{user.email}</span>
-              </div>
-
-              <div className="profile-field">
-                <label className="profile-label">Bio</label>
-                {editing ? (
-                  <textarea
-                    className="profile-input profile-textarea"
-                    name="bio"
-                    value={form.bio}
-                    onChange={handleChange}
-                    placeholder="Tell us about yourself..."
-                    rows={4}
-                  />
-                ) : (
-                  <span className="profile-value">{user.bio || 'No bio added yet.'}</span>
-                )}
-              </div>
-
-              {editing && (
-                <div className="profile-field">
-                  <label className="profile-label">
-                    <FiCamera size={14} /> Avatar URL
-                  </label>
-                  <input
-                    className="profile-input"
-                    name="avatar"
-                    value={form.avatar}
-                    onChange={handleChange}
-                    placeholder="Paste image URL..."
-                  />
+            <div style={{ marginLeft: '130px', minHeight: '60px' }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '16px' }}>
+                <div>
+                  <h2 style={{ fontSize: '24px', fontWeight: '800', color: '#111827', margin: '0 0 4px 0', fontFamily: 'var(--font-heading)' }}>
+                    {form.username}
+                  </h2>
+                  <p style={{ fontSize: '15px', color: '#475569', margin: '0 0 8px 0', fontWeight: '500' }}>
+                    Senior Product Manager &amp; Event Lead
+                  </p>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: '12px', fontSize: '13px', color: '#94A3B8' }}>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <FiMapPin /> San Francisco, CA
+                    </span>
+                    <span>&bull;</span>
+                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: '4px' }}>
+                      <FiMail /> {user.email}
+                    </span>
+                  </div>
                 </div>
-              )}
 
-              {editing && (
-                <div className="profile-actions">
-                  <button
-                    className="profile-save-btn"
-                    onClick={handleSave}
-                    disabled={saving}
-                  >
-                    <FiSave size={15} />
-                    {saving ? 'Saving...' : 'Save Changes'}
-                  </button>
-                  <button className="profile-cancel-btn" onClick={handleCancel}>
-                    <FiX size={15} /> Cancel
-                  </button>
+                {/* Micro Stats Columns */}
+                <div style={{ display: 'flex', gap: '20px' }}>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '18px', fontWeight: '800', color: '#111827' }}>1,240</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600' }}>CONNECTIONS</div>
+                  </div>
+                  <div style={{ textAlign: 'center' }}>
+                    <div style={{ fontSize: '18px', fontWeight: '800', color: '#111827' }}>410</div>
+                    <div style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '600' }}>PASSES ISSUED</div>
+                  </div>
                 </div>
-              )}
-            </div>
-
-            {/* Stats card */}
-            <div className="profile-stats-card">
-              <h3 className="profile-section-title">Activity Summary</h3>
-              <div className="profile-stat-row">
-                <span className="profile-stat-label">Events Registered</span>
-                <span className="profile-stat-value">3</span>
-              </div>
-              <div className="profile-stat-row">
-                <span className="profile-stat-label">Events Created</span>
-                <span className="profile-stat-value">3</span>
-              </div>
-              <div className="profile-stat-row">
-                <span className="profile-stat-label">Total Participants</span>
-                <span className="profile-stat-value">2,270</span>
-              </div>
-              <div className="profile-stat-row">
-                <span className="profile-stat-label">Account Status</span>
-                <span className="profile-stat-badge">Active</span>
               </div>
             </div>
           </div>
+        </ContentCard>
+
+        {/* Content body split layout */}
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '28px' }} className="profile-grid-layout">
+          
+          {/* Left Panel: Bio + Activity */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+            
+            {/* Bio Card */}
+            <ContentCard>
+              <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 12px 0', fontFamily: 'var(--font-heading)' }}>
+                About
+              </h3>
+              {editing ? (
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Display Name</label>
+                    <input
+                      type="text"
+                      name="username"
+                      value={form.username}
+                      onChange={handleChange}
+                      style={{ width: '100%', padding: '12px', border: '1.5px solid #E5E7EB', borderRadius: '12px', outline: 'none' }}
+                    />
+                  </div>
+                  <div>
+                    <label style={{ display: 'block', fontSize: '13px', fontWeight: '600', color: '#374151', marginBottom: '6px' }}>Professional Biography</label>
+                    <textarea
+                      name="bio"
+                      rows={5}
+                      value={form.bio}
+                      onChange={handleChange}
+                      style={{ width: '100%', padding: '12px', border: '1.5px solid #E5E7EB', borderRadius: '12px', outline: 'none', resize: 'none' }}
+                    />
+                  </div>
+                </div>
+              ) : (
+                <p style={{ fontSize: '15px', color: '#475569', lineHeight: '1.6', margin: 0 }}>
+                  {form.bio}
+                </p>
+              )}
+            </ContentCard>
+
+            {/* Recent Creations & Achievements */}
+            <ContentCard>
+              <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 16px 0', fontFamily: 'var(--font-heading)' }}>
+                Experience &amp; Track Record
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+                <div style={{ display: 'flex', gap: '12px', paddingBottom: '16px', borderBottom: '1px solid #F1F5F9' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#FEF3C7', color: '#B45309', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+                    🏆
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#111827' }}>Chief Coordinator, Future Visionary Summit 2024</div>
+                    <div style={{ fontSize: '12px', color: '#6B7280' }}>Organized for 1,200 attendees &bull; October 2024</div>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', gap: '12px' }}>
+                  <div style={{ width: '40px', height: '40px', borderRadius: '8px', background: '#DCFCE7', color: '#15803D', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '18px' }}>
+                    ⚡
+                  </div>
+                  <div>
+                    <div style={{ fontSize: '15px', fontWeight: '700', color: '#111827' }}>Speaker Coordinator, Global Tech Summit 2023</div>
+                    <div style={{ fontSize: '12px', color: '#6B7280' }}>Coordinated 32 keynote tracks &bull; September 2023</div>
+                  </div>
+                </div>
+              </div>
+            </ContentCard>
+          </div>
+
+          {/* Right Panel: Sidebar Badges & Accomplishments */}
+          <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
+            <ContentCard>
+              <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: '0 0 16px 0', fontFamily: 'var(--font-heading)' }}>
+                Accomplishments
+              </h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#475569' }}>
+                  <FiAward color="#F5C451" />
+                  <span>Stripe Payout Certified</span>
+                </div>
+                <div style={{ display: 'flex', alignItems: 'center', gap: '10px', fontSize: '14px', color: '#475569' }}>
+                  <FiCalendar color="#F5C451" />
+                  <span>Elite Planner 2024</span>
+                </div>
+              </div>
+            </ContentCard>
+          </div>
+
         </div>
+      </PageContainer>
 
-        <DashboardFooter />
-      </main>
-    </div>
+      <style>{`
+        @media (max-width: 900px) {
+          .profile-grid-layout {
+            grid-template-columns: 1fr !important;
+          }
+        }
+      `}</style>
+    </AppLayout>
   );
 }
 
