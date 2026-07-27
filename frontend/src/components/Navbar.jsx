@@ -20,12 +20,19 @@ const Navbar = () => {
     return () => window.removeEventListener('scroll', handleScroll);
   }, []);
 
-  const handleLogout = () => {
-    logout();
-    navigate('/events/1');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
-  const logoHref = user ? '/dashboard' : '/events/1';
+  const getDashboardPath = () => {
+    if (!user) return '/';
+    if (user.role === 'ADMIN') return '/admin';
+    if (user.role === 'ORGANIZER') return '/organizer/dashboard';
+    return '/student/dashboard';
+  };
+
+  const logoHref = getDashboardPath();
 
   return (
     <header className={`navbar ${scrolled ? 'scrolled' : ''}`}>
@@ -39,27 +46,29 @@ const Navbar = () => {
         <nav className={`navbar-nav ${menuOpen ? 'open' : ''}`}>
           <ul className="navbar-menu">
             <li>
-              <NavLink to="/events/1" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
+              <NavLink to="/" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
                 Home
               </NavLink>
             </li>
             <li>
-              <NavLink to="/events/1" className={({ isActive }) => `navbar-link`}>
+              <NavLink to="/events" className={({ isActive }) => `navbar-link`}>
                 Events
               </NavLink>
             </li>
             {user && (
               <>
                 <li>
-                  <NavLink to="/dashboard" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
+                  <NavLink to={getDashboardPath()} className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
                     Dashboard
                   </NavLink>
                 </li>
-                <li>
-                  <NavLink to="/create" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
-                    Create Event
-                  </NavLink>
-                </li>
+                {user.role !== 'STUDENT' && (
+                  <li>
+                    <NavLink to="/organizer/events/create" className={({ isActive }) => `navbar-link ${isActive ? 'active' : ''}`}>
+                      Create Event
+                    </NavLink>
+                  </li>
+                )}
               </>
             )}
           </ul>
@@ -69,10 +78,10 @@ const Navbar = () => {
         <div className="navbar-actions">
           {user ? (
             <div className="navbar-user-info">
-              <Link to="/dashboard" className="navbar-link" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: '600' }}>
+              <Link to={getDashboardPath()} className="navbar-link" style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '14px', fontWeight: '600' }}>
                 <FiActivity /> Dashboard
               </Link>
-              <Link to="/profile">
+              <Link to={user.role === 'ORGANIZER' ? '/organizer/profile' : user.role === 'ADMIN' ? '/admin' : '/student/profile'}>
                 <img src={user.avatar} alt={user.username} className="navbar-avatar" onError={e => { e.target.src = 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80'; }} />
               </Link>
               <button onClick={handleLogout} className="navbar-login-btn" style={{ padding: 0, display: 'flex', alignItems: 'center', fontSize: '18px' }} title="Logout">

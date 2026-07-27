@@ -45,13 +45,29 @@ function Login() {
     setSubmitting(true);
     setError('');
     try {
-      await login(formData.email, formData.password);
+      const loggedUser = await login({ email: formData.email, password: formData.password });
       if (rememberMe) {
         localStorage.setItem('remembered_email', formData.email);
       } else {
         localStorage.removeItem('remembered_email');
       }
-      navigate(from, { replace: true });
+      const redirectPath = location.state?.from || (loggedUser.role === 'ADMIN' ? '/admin' : loggedUser.role === 'ORGANIZER' ? '/organizer/dashboard' : '/student/dashboard');
+      
+      const targetPath = typeof redirectPath === 'string' ? redirectPath : (redirectPath.pathname || '/');
+      if (targetPath === '/organizer/apply') {
+        setToastType('success');
+        setToastMessage(
+          <div>
+            <strong style={{ fontWeight: '700', display: 'block', marginBottom: '2px' }}>Welcome back!</strong>
+            <span style={{ fontSize: '12px', color: '#475569' }}>Redirecting you to the Organizer Application...</span>
+          </div>
+        );
+        setTimeout(() => {
+          navigate(targetPath, { replace: true });
+        }, 1500);
+      } else {
+        navigate(redirectPath, { replace: true });
+      }
     } catch (err) {
       setError(err.message || 'Invalid email or password. Please try again.');
     } finally {
@@ -96,10 +112,13 @@ function Login() {
             fontSize: '13px',
             color: '#B45309',
             marginBottom: '20px',
-            lineHeight: '1.5',
+            lineHeight: '1.6',
           }}
         >
-          <strong>Demo Account:</strong> admin@eventhub.com / admin123
+          <strong style={{ display: 'block', marginBottom: '4px' }}>Demo Accounts Available:</strong>
+          <div>• <strong>Admin:</strong> admin@eventhub.com / admin123</div>
+          <div>• <strong>Organizer:</strong> organizer@eventhub.com / organizer123</div>
+          <div>• <strong>Student:</strong> student@eventhub.com / student123</div>
         </div>
 
         {error && (
@@ -217,6 +236,48 @@ function Login() {
             Register
           </Link>
         </p>
+
+        {/* Organizer Application CTA Card */}
+        <div style={{
+          marginTop: '28px',
+          padding: '20px',
+          background: '#FFFDF5',
+          border: '1px solid rgba(245, 196, 81, 0.25)',
+          borderRadius: '16px',
+          display: 'flex',
+          flexDirection: 'column',
+          alignItems: 'center',
+          textAlign: 'center',
+          gap: '12px'
+        }}>
+          <div style={{ fontSize: '24px' }}>📣</div>
+          <div>
+            <h4 style={{ fontSize: '14px', fontWeight: '700', color: '#111827', margin: '0 0 4px 0' }}>Want to organize events?</h4>
+            <p style={{ fontSize: '12px', color: '#475569', margin: 0, lineHeight: '1.5' }}>
+              Apply for organizer privileges and start creating and managing events after administrator approval.
+            </p>
+          </div>
+          <button 
+            onClick={() => navigate('/organizer/apply')}
+            style={{
+              background: '#F5C451',
+              color: '#111827',
+              border: 'none',
+              borderRadius: '12px',
+              padding: '10px 20px',
+              fontWeight: '700',
+              fontSize: '13px',
+              cursor: 'pointer',
+              boxShadow: '0 4px 12px rgba(245, 196, 81, 0.2)',
+              width: '100%',
+              transition: 'background 0.2s'
+            }}
+            onMouseEnter={(e) => e.target.style.background = '#E0B03C'}
+            onMouseLeave={(e) => e.target.style.background = '#F5C451'}
+          >
+            Apply Now
+          </button>
+        </div>
       </AuthCard>
 
       <AuthFooter />

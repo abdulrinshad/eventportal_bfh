@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getAccessToken, removeTokens } from '../utils/tokenStorage';
 
 // API Base URL - ready for Django REST Framework (DRF) integration
 const API_BASE_URL = 'http://localhost:8000/api';
@@ -10,10 +11,10 @@ const api = axios.create({
   },
 });
 
-// Request Interceptor: Attach JWT Token from localStorage if present
+// Request Interceptor: Attach JWT Token from token storage if present
 api.interceptors.request.use(
   (config) => {
-    const token = localStorage.getItem('token');
+    const token = getAccessToken();
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
@@ -30,12 +31,13 @@ api.interceptors.response.use(
   (error) => {
     // If backend returns unauthorized (e.g. token expired), clear local credentials
     if (error.response && error.response.status === 401) {
-      localStorage.removeItem('token');
+      removeTokens();
       localStorage.removeItem('user');
     }
     return Promise.reject(error);
   }
 );
+
 
 /* ==========================================
    AUTHENTICATION ENDPOINTS
@@ -117,4 +119,41 @@ export const getMyRegistrationsApi = async () => {
   return response.data;
 };
 
+/* ==========================================
+   ORGANIZER REQUEST MODULE ENDPOINTS
+   ========================================== */
+
+// POST /api/auth/organizer/apply/
+export const applyOrganizerApi = async () => {
+  const response = await api.post('/auth/organizer/apply/');
+  return response.data;
+};
+
+// GET /api/auth/organizer/status/
+export const getOrganizerStatusApi = async () => {
+  const response = await api.get('/auth/organizer/status/');
+  return response.data;
+};
+
+// GET /api/admin/organizer-requests/
+export const getAdminOrganizerRequestsApi = async (statusFilter = 'PENDING') => {
+  const response = await api.get(`/admin/organizer-requests/`, {
+    params: { status: statusFilter }
+  });
+  return response.data;
+};
+
+// PATCH /api/admin/organizer-requests/:id/approve/
+export const approveOrganizerRequestApi = async (id) => {
+  const response = await api.patch(`/admin/organizer-requests/${id}/approve/`);
+  return response.data;
+};
+
+// PATCH /api/admin/organizer-requests/:id/reject/
+export const rejectOrganizerRequestApi = async (id) => {
+  const response = await api.patch(`/admin/organizer-requests/${id}/reject/`);
+  return response.data;
+};
+
 export default api;
+

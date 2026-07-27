@@ -81,6 +81,7 @@ function OTPVerification() {
         navigate('/login', {
           state: {
             successMessage: 'Account verified successfully! Please sign in.',
+            from: location.state?.from
           },
           replace: true,
         });

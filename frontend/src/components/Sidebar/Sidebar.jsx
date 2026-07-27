@@ -37,9 +37,9 @@ function Sidebar({ activeItem, setActiveItem }) {
     }
   };
 
-  const handleLogout = () => {
-    logout();
-    navigate('/events/1');
+  const handleLogout = async () => {
+    await logout();
+    navigate('/login');
   };
 
   const menuItems = [
