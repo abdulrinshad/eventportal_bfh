@@ -201,18 +201,27 @@ export const EventProvider = ({ children }) => {
     await new Promise(resolve => setTimeout(resolve, 800));
 
     const id = eventData.title.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/(^-|-$)/g, '') || `event-${Date.now()}`;
+    
+    // Defensive check to avoid TypeError if currentUser is undefined
+    const activeUser = currentUser || JSON.parse(localStorage.getItem('user')) || {
+      id: 999,
+      username: 'Anonymous Organizer',
+      avatar: 'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=150&q=80',
+      bio: 'Independent Organizer.'
+    };
+
     const newEvent = {
       ...eventData,
       id,
       attendeesCount: 0,
       price: Number(eventData.price) || 0,
       maxParticipants: Number(eventData.maxParticipants) || 100,
-      organizerId: currentUser.id,
+      organizerId: activeUser.id,
       organizer: {
-        name: currentUser.username,
+        name: activeUser.username,
         subtitle: 'Independent Organizer',
-        description: currentUser.bio || 'Event organizer and hub host.',
-        avatar: currentUser.avatar
+        description: activeUser.bio || 'Event organizer and hub host.',
+        avatar: activeUser.avatar
       },
       stats: {
         speakers: eventData.speakersCount || '5',

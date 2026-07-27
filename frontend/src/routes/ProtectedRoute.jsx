@@ -8,7 +8,7 @@ import Loader from '../components/Loader';
  * Redirects unauthenticated users to /login with return-to URL.
  * Ready to integrate with Django REST Framework JWT tokens.
  */
-const ProtectedRoute = ({ children }) => {
+const ProtectedRoute = ({ children, allowedRoles }) => {
   const { user, loading } = useContext(AuthContext);
   const location = useLocation();
 
@@ -18,6 +18,24 @@ const ProtectedRoute = ({ children }) => {
 
   if (!user) {
     return <Navigate to="/login" state={{ from: location }} replace />;
+  }
+
+  // Admin has access to everything
+  if (user.role === 'ADMIN') {
+    return children;
+  }
+
+  // If page restricts by role, check if user has access
+  if (allowedRoles && !allowedRoles.includes(user.role)) {
+    // Redirect to respective dashboard
+    if (user.role === 'ORGANIZER') {
+      return <Navigate to="/organizer/dashboard" replace />;
+    } else {
+      if (allowedRoles.includes('ORGANIZER')) {
+        return <Navigate to="/student/dashboard" state={{ toastMessage: "You must receive administrator approval before accessing the Organizer Panel." }} replace />;
+      }
+      return <Navigate to="/student/dashboard" replace />;
+    }
   }
 
   return children;

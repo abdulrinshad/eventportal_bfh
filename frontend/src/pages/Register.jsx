@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useLocation, useNavigate, Link } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
 import AuthCard from '../components/auth/AuthCard';
 import AuthInput from '../components/auth/AuthInput';
@@ -8,14 +8,19 @@ import PasswordStrength from '../components/auth/PasswordStrength';
 import AuthFooter from '../components/auth/AuthFooter';
 import Toast from '../components/auth/Toast';
 import { FiUser, FiMail, FiLock } from '../components/Icons';
+import { useAuth } from '../context/AuthContext';
+
 
 function Register() {
   const navigate = useNavigate();
+  const location = useLocation();
+  const { register } = useAuth();
   const [formData, setFormData] = useState({
     fullName: '',
     email: '',
     password: '',
     confirmPassword: '',
+    role: 'Student',
     acceptTerms: false,
   });
   const [errors, setErrors] = useState({});
@@ -61,21 +66,44 @@ function Register() {
     if (!validate()) return;
 
     setSubmitting(true);
-    // Simulate sending OTP delay
-    setTimeout(() => {
-      setSubmitting(false);
-      // Navigate to OTP Verification page passing the registration data and flow context
-      navigate('/otp-verification', {
-        state: {
-          flow: 'register',
-          registrationData: {
-            username: formData.fullName,
+    setErrors({});
+    
+    const nameParts = formData.fullName.trim().split(" ");
+    const first_name = nameParts[0] || "";
+    const last_name = nameParts.slice(1).join(" ") || ".";
+
+    const payload = {
+      first_name,
+      last_name,
+      email: formData.email,
+      password: formData.password,
+      confirm_password: formData.confirmPassword,
+      phone_number: "",
+    };
+
+    try {
+      await register(payload);
+      setToastMessage("Registration successful. Verification code sent.");
+      setTimeout(() => {
+        navigate('/register/verify-otp', {
+          state: {
             email: formData.email,
-            password: formData.password,
+            from: location.state?.from,
           },
-        },
-      });
-    }, 1000);
+        });
+      }, 1500);
+    } catch (err) {
+      const backendErrors = {};
+      if (typeof err === "object") {
+        Object.keys(err).forEach((key) => {
+          backendErrors[key] = Array.isArray(err[key]) ? err[key][0] : err[key];
+        });
+      }
+      setErrors(backendErrors);
+      setToastMessage(err.non_field_errors?.[0] || "Registration failed. Please correct validation errors.");
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
@@ -150,6 +178,8 @@ function Register() {
             error={errors.confirmPassword}
             required
           />
+
+
 
           {/* Accept Terms & Conditions */}
           <div style={{ marginBottom: '20px' }}>
