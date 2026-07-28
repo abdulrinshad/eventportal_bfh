@@ -138,8 +138,16 @@ const AboutCard = ({ event }) => (
 ───────────────────────────────────────────────────── */
 const PricingCard = ({ event, registering, onRegister, regMsg }) => {
   const btnState = event.registration_button_state || 'REGISTER_NOW';
-  const isFree   = event.ticket_price === 0 || event.ticket_price === '0.00';
-  const price    = isFree ? 'Free' : `₹${parseFloat(event.ticket_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+  // Prefer new is_paid/price fields; fall back to ticket_price for old events
+  const isFree = event.is_paid === false || event.is_paid === 'false'
+    ? true
+    : event.is_paid === true || event.is_paid === 'true'
+    ? false
+    : (event.ticket_price === 0 || event.ticket_price === '0.00' || !event.ticket_price);
+
+  const rawPrice = event.is_paid ? (event.price || event.ticket_price) : (event.ticket_price);
+  const price    = isFree ? 'Free' : `₹${parseFloat(rawPrice || 0).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
 
   const buttonConfig = {
     REGISTER_NOW:       { text: registering ? 'Registering...' : 'Register Now', disabled: registering, style: {} },

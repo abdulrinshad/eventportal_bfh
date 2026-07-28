@@ -282,4 +282,99 @@ export const cancelRegistrationApi = async (registrationId) => {
   return response.data;
 };
 
+
+/* ==========================================
+   ORGANIZER — PARTICIPANTS
+   ========================================== */
+
+/**
+ * GET /api/organizer/participants/
+ * Returns paginated registrations for the logged-in organizer's events.
+ * @param {Object} params  { search, ordering, page }
+ */
+export const getOrganizerParticipantsApi = async (params = {}) => {
+  const response = await api.get('/organizer/participants/', { params });
+  return response.data; // { success, count, next, previous, results: [...] }
+};
+
+/**
+ * GET /api/organizer/participants/statistics/
+ * Returns { total_registrations, vip_attendees, pending_reviews }.
+ */
+export const getOrganizerParticipantStatsApi = async () => {
+  const response = await api.get('/organizer/participants/statistics/');
+  return response.data; // { success, data: { total_registrations, ... } }
+};
+
+/**
+ * GET /api/organizer/participants/export/
+ * Downloads a CSV file of all participant records for this organizer.
+ * Returns the axios response with responseType: 'blob'.
+ */
+export const exportOrganizerParticipantsCsvApi = async () => {
+  const response = await api.get('/organizer/participants/export/', {
+    responseType: 'blob',
+  });
+  return response;
+};
+
+
+/* ==========================================
+   ORGANIZER — PROFILE
+   ========================================== */
+
+/**
+ * GET /api/organizer/profile/
+ * Returns the organizer's profile: display_name, biography, photo URL, stats.
+ */
+export const getOrganizerProfileApi = async () => {
+  const response = await api.get('/organizer/profile/');
+  return response.data; // { success, data: { ... } }
+};
+
+/**
+ * PATCH /api/organizer/profile/
+ * Updates display_name, biography, and/or profile_image.
+ * Accepts FormData for multipart/form-data (image upload).
+ */
+export const updateOrganizerProfileApi = async (formData) => {
+  const response = await api.patch('/organizer/profile/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return response.data; // { success, data: { ... } }
+};
+
+
+/* ==========================================
+   NOTIFICATIONS
+   ========================================== */
+
+/**
+ * GET /api/notifications/
+ * Returns all notifications for the authenticated user, newest first.
+ */
+export const getNotificationsApi = async () => {
+  const response = await api.get('/notifications/');
+  return response.data; // { success, count, data: [...] }
+};
+
+/**
+ * POST /api/notifications/mark-all-read/
+ * Marks every unread notification as read for the authenticated user.
+ */
+export const markAllNotificationsReadApi = async () => {
+  const response = await api.post('/notifications/mark-all-read/');
+  return response.data;
+};
+
+/**
+ * DELETE /api/notifications/<uuid>/
+ * Deletes a single notification by ID.
+ */
+export const deleteNotificationApi = async (id) => {
+  const response = await api.delete(`/notifications/${id}/`);
+  return response.data;
+};
+
+
 export default api;

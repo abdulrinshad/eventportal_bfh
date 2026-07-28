@@ -264,7 +264,15 @@ export default function ExploreEvents() {
                   </div>
                 ) : (
                   events.map(evt => {
-                    const price = evt.is_free ? 'Free' : `₹${parseFloat(evt.ticket_price).toLocaleString()}`;
+                    // Prefer new is_paid/price; fall back to is_free/ticket_price for old events
+                    const eventIsFree = evt.is_paid === false || evt.is_paid === 'false'
+                      ? true
+                      : evt.is_paid === true || evt.is_paid === 'true'
+                      ? false
+                      : (evt.is_free === true || !evt.ticket_price || evt.ticket_price == 0);
+                    const displayPrice = eventIsFree
+                      ? 'FREE'
+                      : `₹${parseFloat(evt.price || evt.ticket_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
                     const seatsLeft = evt.available_seats ?? (evt.max_participants - evt.registered_count);
                     return (
                       <ContentCard
@@ -285,8 +293,8 @@ export default function ExploreEvents() {
                             </div>
                           )}
                           {/* Price badge */}
-                          <span style={{ position: 'absolute', top: '12px', right: '12px', background: '#FFFFFF', color: evt.is_free ? '#15803D' : '#111827', fontSize: '12px', fontWeight: '750', padding: '4px 10px', borderRadius: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
-                            {price}
+                          <span style={{ position: 'absolute', top: '12px', right: '12px', background: eventIsFree ? '#DCFCE7' : '#FFFFFF', color: eventIsFree ? '#15803D' : '#111827', fontSize: '12px', fontWeight: '750', padding: '4px 10px', borderRadius: '20px', boxShadow: '0 2px 8px rgba(0,0,0,0.06)' }}>
+                            {displayPrice}
                           </span>
                           {/* Seats badge */}
                           {seatsLeft <= 10 && seatsLeft > 0 && (

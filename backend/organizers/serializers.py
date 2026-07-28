@@ -1,4 +1,4 @@
-﻿import re
+import re
 
 from django.contrib.auth import get_user_model
 from django.contrib.auth.password_validation import validate_password
@@ -35,27 +35,33 @@ class OrganizerProfileSerializer(serializers.ModelSerializer):
     Merges fields from CustomUser + OrganizerProfile and adds computed stats.
     """
 
-    # From CustomUser
+    # From CustomUser — plain field values
     email        = serializers.EmailField(source="user.email", read_only=True)
-    profile_image = serializers.ImageField(source="user.profile_image", read_only=True)
-    phone_number  = serializers.CharField(source="user.phone_number", read_only=True)
+    phone_number = serializers.CharField(source="user.phone_number", read_only=True, allow_null=True)
+    first_name   = serializers.CharField(source="user.first_name", read_only=True)
+    last_name    = serializers.CharField(source="user.last_name", read_only=True)
+
+    # Absolute URL for the profile image (stored on CustomUser)
+    profile_image_url = serializers.SerializerMethodField()
 
     # Computed stats
-    total_events_hosted = serializers.SerializerMethodField()
-    total_passes_issued = serializers.SerializerMethodField()
+    total_events_hosted  = serializers.SerializerMethodField()
+    total_registrations  = serializers.SerializerMethodField()
 
     class Meta:
         model  = OrganizerProfile
         fields = [
-            "profile_image",
-            "cover_image",
+            "first_name",
+            "last_name",
             "display_name",
-            "title",
-            "city",
-            "country",
             "email",
             "phone_number",
             "biography",
+            "profile_image_url",
+            "cover_image",
+            "title",
+            "city",
+            "country",
             "website",
             "linkedin",
             "instagram",
@@ -63,14 +69,27 @@ class OrganizerProfileSerializer(serializers.ModelSerializer):
             "accomplishments",
             "experience",
             "total_events_hosted",
-            "total_passes_issued",
+            "total_registrations",
         ]
         read_only_fields = fields
 
-    def get_total_events_hosted(self, obj):
-        return obj.user.events.count()
+    def get_profile_image_url(self, obj):
+        """Return absolute URL for the user's profile image, or None."""
+        image = obj.user.profile_image
+        if not image:
+            return None
+        request = self.context.get("request")
+        if request:
+            return request.build_absolute_uri(image.url)
+        return image.url
 
-    def get_total_passes_issued(self, obj):
+    def get_total_events_hosted(self, obj):
+        """Count of APPROVED events by this organizer."""
+        from events.models import Event
+        return obj.user.events.filter(status=Event.Status.APPROVED).count()
+
+    def get_total_registrations(self, obj):
+        """Total registrations across all this organizer's events."""
         return Registration.objects.filter(event__organizer=obj.user).count()
 
 

@@ -111,6 +111,9 @@ class EventDetailSerializer(serializers.ModelSerializer):
             "ticket_price",
             "website",
             "social_links",
+            # ── Pricing ──────────────────────────────────────────────────────
+            "is_paid",
+            "price",
         ]
         read_only_fields = [
             "id",
@@ -158,6 +161,19 @@ class EventDetailSerializer(serializers.ModelSerializer):
     # ── Object-level validation ───────────────────────────────────────────────
 
     def validate(self, attrs):
+        # ── Pricing cross-field validation ────────────────────────────────────────
+        is_paid = attrs.get("is_paid", getattr(self.instance, "is_paid", False))
+        price   = attrs.get("price",   getattr(self.instance, "price",   0))
+
+        if is_paid:
+            if price is None or price <= 0:
+                raise serializers.ValidationError(
+                    {"price": "Paid events require a valid amount greater than 0."}
+                )
+        else:
+            attrs["price"] = 0
+
+        # ── Datetime cross-field validation ───────────────────────────────────────
         start    = attrs.get("start_datetime")    or getattr(self.instance, "start_datetime", None)
         end      = attrs.get("end_datetime")      or getattr(self.instance, "end_datetime", None)
         deadline = attrs.get("registration_deadline") or getattr(self.instance, "registration_deadline", None)
@@ -227,6 +243,8 @@ class EventCreateSerializer(serializers.ModelSerializer):
             "ticket_price",
             "website",
             "social_links",
+            "is_paid",
+            "price",
             "status",
             "created_at",
             "updated_at",
@@ -261,6 +279,19 @@ class EventCreateSerializer(serializers.ModelSerializer):
         return _parse_json_field(value, dict)
 
     def validate(self, attrs):
+        # ── Pricing cross-field validation ────────────────────────────────────────
+        is_paid = attrs.get("is_paid", False)
+        price   = attrs.get("price", 0)
+
+        if is_paid:
+            if price is None or price <= 0:
+                raise serializers.ValidationError(
+                    {"price": "Paid events require a valid amount greater than 0."}
+                )
+        else:
+            attrs["price"] = 0
+
+        # ── Datetime cross-field validation ───────────────────────────────────────
         start    = attrs.get("start_datetime")
         end      = attrs.get("end_datetime")
         deadline = attrs.get("registration_deadline")
@@ -303,6 +334,8 @@ class PendingEventListSerializer(serializers.ModelSerializer):
             "end_datetime",
             "created_at",
             "status",
+            "is_paid",
+            "price",
         ]
         read_only_fields = fields
 
@@ -340,6 +373,8 @@ class RejectedEventListSerializer(serializers.ModelSerializer):
             "venue",
             "start_datetime",
             "status",
+            "is_paid",
+            "price",
         ]
         read_only_fields = fields
 
@@ -383,6 +418,8 @@ class OrganizerEventListSerializer(serializers.ModelSerializer):
             "max_participants",
             "tags",
             "created_at",
+            "is_paid",
+            "price",
         ]
         read_only_fields = fields
 

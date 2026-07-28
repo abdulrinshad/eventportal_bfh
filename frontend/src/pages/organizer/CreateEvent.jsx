@@ -27,7 +27,6 @@ const IcoSearch  = ({ size = 16 }) => <Svg size={size}><circle cx="11" cy="11" r
 
 /**
  * Backend category codes that map to the display labels shown in the UI.
- * The frontend sends the CODE to the backend, not the display label.
  */
 const CATEGORY_OPTIONS = [
   { value: 'ACADEMIC',    label: 'Academic' },
@@ -40,12 +39,6 @@ const CATEGORY_OPTIONS = [
   { value: 'NETWORKING',  label: 'Networking' },
   { value: 'SOCIAL',      label: 'Social' },
   { value: 'OTHER',       label: 'Other' },
-];
-
-const TABS = [
-  { id: 'general',   label: 'General Info', num: 1 },
-  { id: 'logistics', label: 'Logistics',    num: 2 },
-  { id: 'ticketing', label: 'Ticketing',    num: 3 },
 ];
 
 /* ─────────────────────────────────────────────────────
@@ -100,9 +93,84 @@ const BannerUpload = ({ preview, onFile }) => {
 };
 
 /* ─────────────────────────────────────────────────────
-   GeneralInfoTab — tab 1 (all the form fields)
+   EventPricingCard sub-component
    ───────────────────────────────────────────────────── */
-const GeneralInfoTab = ({ form, onChange, onBannerFile }) => (
+const EventPricingCard = ({ isPaid, price, onIsPaidChange, onPriceChange, priceError }) => (
+  <div className="ce-section-card">
+    <h3 className="ce-section-title">Event Pricing</h3>
+
+    {/* Event Type Radio Buttons */}
+    <div style={{ display: 'flex', gap: '24px', marginBottom: isPaid ? '16px' : '0' }}>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+        <input
+          type="radio"
+          name="ce-event-type"
+          id="ce-event-free"
+          checked={!isPaid}
+          onChange={() => onIsPaidChange(false)}
+          style={{ width: '16px', height: '16px', accentColor: '#F5C451', cursor: 'pointer' }}
+        />
+        Free Event
+      </label>
+      <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+        <input
+          type="radio"
+          name="ce-event-type"
+          id="ce-event-paid"
+          checked={isPaid}
+          onChange={() => onIsPaidChange(true)}
+          style={{ width: '16px', height: '16px', accentColor: '#F5C451', cursor: 'pointer' }}
+        />
+        Paid Event
+      </label>
+    </div>
+
+    {/* Amount field — only visible when Paid */}
+    {isPaid && (
+      <div className="ce-field" style={{ maxWidth: '280px' }}>
+        <label className="ce-label" htmlFor="ce-price">
+          Charge Amount <span style={{ color: '#EF4444' }}>*</span>
+        </label>
+        <div className="ce-pricing-input-wrap" style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #E2E8F0', borderRadius: '10px', overflow: 'hidden', background: '#FFFFFF' }}>
+          <span style={{
+            padding: '0 12px',
+            fontSize: '15px',
+            fontWeight: '700',
+            color: '#374151',
+            background: '#F8FAFC',
+            borderRight: '1.5px solid #E2E8F0',
+            height: '100%',
+            display: 'flex',
+            alignItems: 'center',
+            lineHeight: '42px',
+          }}>₹</span>
+          <input
+            id="ce-price"
+            className="ce-input"
+            type="number"
+            min="0.01"
+            step="0.01"
+            placeholder="Enter event fee"
+            value={price}
+            onChange={(e) => onPriceChange(e.target.value)}
+            style={{ border: 'none', borderRadius: 0, flex: 1, paddingLeft: '10px' }}
+          />
+        </div>
+        {priceError && (
+          <span style={{ fontSize: '12px', color: '#EF4444', marginTop: '4px', display: 'block' }}>
+            {priceError}
+          </span>
+        )}
+        <span className="ce-field-hint">E.g. ₹250 or ₹500. Decimals allowed.</span>
+      </div>
+    )}
+  </div>
+);
+
+/* ─────────────────────────────────────────────────────
+   GeneralInfoTab — only tab (General Info)
+   ───────────────────────────────────────────────────── */
+const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
   <div className="ce-tab-content">
     <BannerUpload preview={form.bannerPreview} onFile={onBannerFile} />
 
@@ -190,6 +258,15 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile }) => (
         </div>
       </div>
     </div>
+
+    {/* Event Pricing — between Description and Time & Location */}
+    <EventPricingCard
+      isPaid={form.is_paid}
+      price={form.price}
+      onIsPaidChange={(val) => onChange('is_paid', val)}
+      onPriceChange={(val) => onChange('price', val)}
+      priceError={priceError}
+    />
 
     {/* Time & Location */}
     <div className="ce-section-card">
@@ -279,16 +356,6 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile }) => (
   </div>
 );
 
-const PlaceholderTab = ({ icon: Icon, title, description }) => (
-  <div className="ce-tab-content ce-tab-content--placeholder">
-    <div className="ce-placeholder-card">
-      <div className="ce-placeholder-icon-wrap"><Icon size={24} /></div>
-      <h3 className="ce-placeholder-title">{title} Section</h3>
-      <p className="ce-placeholder-desc">{description}</p>
-    </div>
-  </div>
-);
-
 /* ─────────────────────────────────────────────────────
    Main CreateEvent page
    ───────────────────────────────────────────────────── */
@@ -297,9 +364,9 @@ export default function CreateEvent() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [activeTab,  setActiveTab]  = useState('general');
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
+  const [priceError, setPriceError] = useState('');
 
   // Banner file stored separately so it can be appended to FormData
   const [bannerFile, setBannerFile] = useState(null);
@@ -319,9 +386,17 @@ export default function CreateEvent() {
     contactPhone:         '',
     ticketPrice:          0,
     visibility:           'PUBLIC',
+    is_paid:              false,
+    price:                '',
   });
 
-  const updateField = (key, val) => setForm((f) => ({ ...f, [key]: val }));
+  const updateField = (key, val) => {
+    setForm((f) => ({ ...f, [key]: val }));
+    // Clear price error when pricing changes
+    if (key === 'is_paid' || key === 'price') {
+      setPriceError('');
+    }
+  };
 
   const handleBannerFile = (file) => {
     setBannerFile(file);
@@ -341,6 +416,16 @@ export default function CreateEvent() {
     if (!form.venue.trim())               return 'Venue / Location is required.';
     if (!form.contactEmail.trim())        return 'Contact Email is required.';
     if (parseInt(form.maxParticipants) < 1) return 'Max Participants must be at least 1.';
+
+    // Pricing validation
+    if (form.is_paid) {
+      const amount = parseFloat(form.price);
+      if (!form.price || isNaN(amount) || amount <= 0) {
+        setPriceError('Please enter a valid event amount.');
+        return 'Please enter a valid event amount.';
+      }
+    }
+
     return null;
   };
 
@@ -400,42 +485,12 @@ export default function CreateEvent() {
         />
 
         <div className="ce-main" style={{ padding: 0 }}>
-          {/* Tab bar */}
-          <div className="ce-tab-bar" style={{ marginBottom: '24px' }}>
-            {TABS.map((tab) => (
-              <button
-                key={tab.id}
-                className={`ce-tab${activeTab === tab.id ? ' active' : ''}`}
-                onClick={() => setActiveTab(tab.id)}
-              >
-                <span className="ce-tab__num">{tab.num}</span>
-                {tab.label}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab panels */}
-          {activeTab === 'general' && (
-            <GeneralInfoTab
-              form={form}
-              onChange={updateField}
-              onBannerFile={handleBannerFile}
-            />
-          )}
-          {activeTab === 'logistics' && (
-            <PlaceholderTab
-              icon={IcoMapPin}
-              title="Logistics"
-              description="Configure transportation, parking, and accommodation options for your attendees."
-            />
-          )}
-          {activeTab === 'ticketing' && (
-            <PlaceholderTab
-              icon={IcoInfo}
-              title="Ticketing"
-              description="Set up ticket tiers, pricing, and early-bird discounts for your event."
-            />
-          )}
+          <GeneralInfoTab
+            form={form}
+            onChange={updateField}
+            onBannerFile={handleBannerFile}
+            priceError={priceError}
+          />
         </div>
       </PageContainer>
     </OrganizerLayout>
