@@ -52,6 +52,7 @@ INSTALLED_APPS = [
     'organizers',
     'events',
     'registrations',
+    'student',
     'notifications',
     'analytics_app',
     'reports',
