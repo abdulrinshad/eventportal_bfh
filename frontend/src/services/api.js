@@ -1,7 +1,7 @@
 import axios from 'axios';
 import { getAccessToken, removeTokens } from '../utils/tokenStorage';
 
-// API Base URL - ready for Django REST Framework (DRF) integration
+// API Base URL
 const API_BASE_URL = 'http://localhost:8000/api';
 
 const api = axios.create({
@@ -11,7 +11,7 @@ const api = axios.create({
   },
 });
 
-// Request Interceptor: Attach JWT Token from token storage if present
+// Request Interceptor: Attach JWT Token
 api.interceptors.request.use(
   (config) => {
     const token = getAccessToken();
@@ -20,16 +20,13 @@ api.interceptors.request.use(
     }
     return config;
   },
-  (error) => {
-    return Promise.reject(error);
-  }
+  (error) => Promise.reject(error)
 );
 
 // Response Interceptor: Global Error Handler
 api.interceptors.response.use(
   (response) => response,
   (error) => {
-    // If backend returns unauthorized (e.g. token expired), clear local credentials
     if (error.response && error.response.status === 401) {
       removeTokens();
       localStorage.removeItem('user');
@@ -37,6 +34,17 @@ api.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
+/**
+ * Unwrap a backend response that may be wrapped in { success, data, ... }.
+ * All event endpoints return { success: true, data: [...] | {...} }.
+ */
+function unwrap(responseData) {
+  if (responseData && typeof responseData === 'object' && 'data' in responseData) {
+    return responseData.data;
+  }
+  return responseData;
+}
 
 
 /* ==========================================
@@ -55,9 +63,9 @@ export const authLoginApi = async (credentials) => {
   return response.data;
 };
 
-// GET /api/profile/
+// GET /api/auth/profile/
 export const getProfileApi = async () => {
-  const response = await api.get('/profile/');
+  const response = await api.get('/auth/profile/');
   return response.data;
 };
 
@@ -66,58 +74,99 @@ export const getProfileApi = async () => {
    EVENTS ENDPOINTS
    ========================================== */
 
-// GET /api/events/
-export const getEventsApi = async () => {
-  const response = await api.get('/events/');
-  return response.data;
+/**
+ * GET /api/events/
+ * Returns the authenticated organizer's own events (all statuses).
+ * Backend wraps response in { success, count, data: [...] }.
+ * Returns the unwrapped array.
+ */
+export const getOrganizerEventsApi = async (params = {}) => {
+  const response = await api.get('/events/', { params });
+  return unwrap(response.data); // always an array
 };
 
-// GET /api/events/:id/
+/**
+ * GET /api/events/:id/
+ * Returns a single event object (unwrapped from { success, data: {...} }).
+ */
 export const getEventDetailApi = async (id) => {
   const response = await api.get(`/events/${id}/`);
-  return response.data;
+  return unwrap(response.data);
 };
 
-// POST /api/events/
-export const createEventApi = async (eventData) => {
-  const response = await api.post('/events/', eventData);
-  return response.data;
+/**
+ * GET /api/events/pending/
+ * Returns organizer's PENDING events (unwrapped array).
+ */
+export const getPendingEventsApi = async () => {
+  const response = await api.get('/events/pending/');
+  return unwrap(response.data);
 };
 
-// PUT /api/events/:id/
-export const updateEventApi = async (id, eventData) => {
-  const response = await api.put(`/events/${id}/`, eventData);
-  return response.data;
+/**
+ * GET /api/events/rejected/
+ * Returns organizer's REJECTED events (unwrapped array).
+ */
+export const getRejectedEventsApi = async () => {
+  const response = await api.get('/events/rejected/');
+  return unwrap(response.data);
 };
 
-// DELETE /api/events/:id/
+/**
+ * POST /api/events/
+ * Create a new event. Accepts FormData (multipart/form-data) for banner upload.
+ */
+export const createEventApi = async (formData) => {
+  const response = await api.post('/events/', formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrap(response.data);
+};
+
+/**
+ * PATCH /api/events/:id/
+ * Partial update. Accepts FormData (multipart/form-data) for banner replacement.
+ * Also handles REJECTED → PENDING auto-transition on the backend.
+ */
+export const patchEventApi = async (id, formData) => {
+  const response = await api.patch(`/events/${id}/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrap(response.data);
+};
+
+/**
+ * PUT /api/events/:id/
+ * Full update. Accepts FormData (multipart/form-data).
+ */
+export const updateEventApi = async (id, formData) => {
+  const response = await api.put(`/events/${id}/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrap(response.data);
+};
+
+/**
+ * DELETE /api/events/:id/
+ * Delete the event and its banner from disk.
+ */
 export const deleteEventApi = async (id) => {
   const response = await api.delete(`/events/${id}/`);
   return response.data;
 };
 
-// POST /api/events/:id/register/
-export const registerForEventApi = async (id) => {
-  const response = await api.post(`/events/${id}/register/`);
-  return response.data;
+/**
+ * PUT/PATCH /api/events/:id/resubmit/
+ * Explicitly resubmit a rejected event for admin review.
+ * Sends updated fields and forces status=PENDING on backend.
+ */
+export const resubmitEventApi = async (id, formData) => {
+  const response = await api.patch(`/events/${id}/resubmit/`, formData, {
+    headers: { 'Content-Type': 'multipart/form-data' },
+  });
+  return unwrap(response.data);
 };
 
-
-/* ==========================================
-   USER-SPECIFIC DASHBOARD ENDPOINTS
-   ========================================== */
-
-// GET /api/my-events/
-export const getMyEventsApi = async () => {
-  const response = await api.get('/my-events/');
-  return response.data;
-};
-
-// GET /api/my-registrations/
-export const getMyRegistrationsApi = async () => {
-  const response = await api.get('/my-registrations/');
-  return response.data;
-};
 
 /* ==========================================
    ORGANIZER REQUEST MODULE ENDPOINTS
@@ -137,8 +186,8 @@ export const getOrganizerStatusApi = async () => {
 
 // GET /api/admin/organizer-requests/
 export const getAdminOrganizerRequestsApi = async (statusFilter = 'PENDING') => {
-  const response = await api.get(`/admin/organizer-requests/`, {
-    params: { status: statusFilter }
+  const response = await api.get('/admin/organizer-requests/', {
+    params: { status: statusFilter },
   });
   return response.data;
 };
@@ -156,4 +205,3 @@ export const rejectOrganizerRequestApi = async (id) => {
 };
 
 export default api;
-
