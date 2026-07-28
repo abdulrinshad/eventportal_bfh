@@ -71,7 +71,7 @@ export const getProfileApi = async () => {
 
 
 /* ==========================================
-   EVENTS ENDPOINTS
+   EVENTS ENDPOINTS (Organizer)
    ========================================== */
 
 /**
@@ -201,6 +201,84 @@ export const approveOrganizerRequestApi = async (id) => {
 // PATCH /api/admin/organizer-requests/:id/reject/
 export const rejectOrganizerRequestApi = async (id) => {
   const response = await api.patch(`/admin/organizer-requests/${id}/reject/`);
+  return response.data;
+};
+
+
+/* ==========================================
+   STUDENT MODULE ENDPOINTS
+   ========================================== */
+
+/**
+ * GET /api/student/dashboard/
+ * Returns live stats and personalised content for the student dashboard.
+ */
+export const getStudentDashboardApi = async () => {
+  const response = await api.get('/student/dashboard/');
+  return response.data; // { success, message, data: { registered_events, ... } }
+};
+
+/**
+ * GET /api/student/events/
+ * Returns paginated APPROVED events only.
+ *
+ * @param {Object} params  Query params:
+ *   - search       {string}  Full-text search on title/description/venue
+ *   - category     {string}  Event category (ACADEMIC, CULTURAL, etc.) or "ALL"
+ *   - price_type   {string}  "Free" | "Paid" | undefined
+ *   - ordering     {string}  "upcoming" | "newest" | "oldest" | "price_asc" | "price_desc"
+ *   - page         {number}  Page number
+ */
+export const getStudentEventsApi = async (params = {}) => {
+  const response = await api.get('/student/events/', { params });
+  return response.data; // { success, count, next, previous, data: [...] }
+};
+
+/**
+ * GET /api/student/events/:id/
+ * Returns full details of a single approved event + registration button state.
+ */
+export const getStudentEventDetailApi = async (id) => {
+  const response = await api.get(`/student/events/${id}/`);
+  return response.data; // { success, message, data: { ...event, registration_button_state } }
+};
+
+/**
+ * POST /api/student/events/:id/register/
+ * Register the authenticated student for an event.
+ * Returns { success, message, data: { registration_id, status } }
+ */
+export const registerForEventApi = async (eventId) => {
+  const response = await api.post(`/student/events/${eventId}/register/`);
+  return response.data;
+};
+
+/**
+ * GET /api/student/registrations/
+ * Returns the student's own registrations.
+ * @param {Object} params  { search: string }
+ */
+export const getStudentRegistrationsApi = async (params = {}) => {
+  const response = await api.get('/student/registrations/', { params });
+  return response.data; // { success, count, data: [...] }
+};
+
+/**
+ * GET /api/student/registrations/summary/
+ * Returns { confirmed, waitlisted, cancelled } counts.
+ */
+export const getStudentRegistrationsSummaryApi = async () => {
+  const response = await api.get('/student/registrations/summary/');
+  return response.data; // { success, message, data: { confirmed, waitlisted, cancelled } }
+};
+
+/**
+ * DELETE /api/student/registrations/:id/cancel/
+ * Cancel a specific registration by its UUID.
+ * Returns { success, message, data: { registration_id, status } }
+ */
+export const cancelRegistrationApi = async (registrationId) => {
+  const response = await api.delete(`/student/registrations/${registrationId}/cancel/`);
   return response.data;
 };
 

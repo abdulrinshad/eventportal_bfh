@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './EventDetails.css';
+import { getStudentEventDetailApi, registerForEventApi } from '../services/api';
 
 /* ─────────────────────────────────────────────────────
    INLINE SVG ICONS
@@ -28,168 +29,67 @@ const IcoTw          = ({ size = 16 }) => <Svg size={size}><path d="M23 3a10.9 1
 const IcoIn          = ({ size = 16 }) => <Svg size={size}><path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"/><rect x="2" y="9" width="4" height="12"/><circle cx="4" cy="4" r="2"/></Svg>;
 
 /* ─────────────────────────────────────────────────────
-   DUMMY DATA
+   HELPERS
 ───────────────────────────────────────────────────── */
-const EVENT = {
-  title: 'Future Visionary Summit 2024',
-  category: 'Technology & Innovation',
-  date: 'October 2-05, 2024',
-  venue: 'Grand Tech Center, San Francisco',
-  attendees: 1200,
-  price: 499.00,
-  heroImages: [
-    'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1591453089816-0fbb971b454c?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=800&q=80',
-    'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=800&q=80',
-  ],
-  aboutText: [
-    "Welcome to the flagship event of CompilVision. The Future Visionary Summit 2024 brings together the world's most influential minds in technology, design, and business strategy for three days of immersive learning and networking.",
-    "This year's theme focuses on \"The Symbiosis of AI and Human Creativity.\" We will explore how generative technologies are reshaping industry landscapes, from automated logistics to high-fidelity creative arts. Our curated sessions are designed to move beyond the hype and provide actionable insights for professional growth.",
-  ],
-  stats: [
-    { value: 32, label: 'Keynote Speakers' },
-    { value: 15, label: 'Workshops' },
-    { value: '24h', label: 'Networking' },
-    { value: 12, label: 'Exhibitors' },
-  ],
-  checklist: [
-    'Full access to all keynote sessions',
-    'Lunch and refreshments included',
-    'Networking gala evening pass',
-    'Digital certificate of attendance',
-  ],
-  schedule: [
-    {
-      id: 1,
-      time: ['09:00', 'AM'],
-      title: 'Opening Keynote: The Digital Renaissance',
-      speaker: 'Speaker: Dr. Julian Voice, Chief Futurist at CompilVision',
-      tags: [
-        { label: 'Main Stage', color: 'green' },
-        { label: '90 Mins', color: 'yellow' },
-      ],
-      detail: 'An inspiring opening session exploring the intersection of technology and human creativity, setting the vision for the summit.',
-    },
-    {
-      id: 2,
-      time: ['11:00', 'AM'],
-      title: 'Interactive UI Design Workshop',
-      speaker: 'Hands-on session using the latest design-to-code workflows.',
-      tags: [
-        { label: 'Workshop Lab', color: 'green' },
-        { label: '120 Mins', color: 'yellow' },
-      ],
-      detail: 'Participants will prototype real components using Figma and modern AI-assisted code generation tools.',
-    },
-  ],
-  organizer: {
-    name: 'CompilVision Events Team',
-    role: 'Professional Event Planners',
-    bio: 'CompilVision is a global leader in organizing high-fidelity professional events. We focus on bringing the gap between innovative technology and real-world education through world-class summits and hands-on workshops.',
-    img: 'https://images.unsplash.com/photo-1573496799822-994c23dce00f?auto=format&fit=crop&w=150&q=80',
-  },
-  venueName: 'Grand Tech Center',
-  venueAddress: '101 Innovation Way, Demo District, San Francisco, CA 94103',
-  mapImg: 'https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&w=900&q=60',
-};
-
-const ATTENDEE_AVATARS = [
-  'https://images.unsplash.com/photo-1535713875002-d1d0cf377fde?auto=format&fit=crop&w=60&q=80',
-  'https://images.unsplash.com/photo-1494790108377-be9c29b29330?auto=format&fit=crop&w=60&q=80',
-  'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?auto=format&fit=crop&w=60&q=80',
-  'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?auto=format&fit=crop&w=60&q=80',
-  'https://images.unsplash.com/photo-1500648767791-00dcc994a43e?auto=format&fit=crop&w=60&q=80',
-];
-
-const SIMILAR = [
-  {
-    id: 's1',
-    img: 'https://images.unsplash.com/photo-1542744173-8e7e53415bb0?auto=format&fit=crop&w=500&q=80',
-    date: 'Nov 15, 2024',
-    title: 'AI Marketing Strategies',
-    price: '$129.00',
-    free: false,
-  },
-  {
-    id: 's2',
-    img: 'https://images.unsplash.com/photo-1560439514-4e9645039924?auto=format&fit=crop&w=500&q=80',
-    date: 'Dec 05, 2024',
-    title: 'Design Systems 2.0',
-    price: 'Free',
-    free: true,
-  },
-  {
-    id: 's3',
-    img: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=500&q=80',
-    date: 'Jan 18, 2025',
-    title: "Founder's Night Out",
-    price: '$45.00',
-    free: false,
-  },
-];
+function formatDate(dateStr) {
+  if (!dateStr) return 'TBD';
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+}
+function formatDateTime(dateStr) {
+  if (!dateStr) return 'TBD';
+  return new Date(dateStr).toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
 
 /* ─────────────────────────────────────────────────────
-   NAVBAR
+   HERO BANNER
 ───────────────────────────────────────────────────── */
-const Navbar = ({ scrolled }) => (
-  <header className={`cv-nav${scrolled ? ' cv-nav--scrolled' : ''}`}>
-    <div className="cv-nav__inner">
-      <a href="/" className="cv-nav__logo">CompilVision</a>
-      <nav className="cv-nav__links">
-        <a href="/" className="cv-nav__link">Home</a>
-        <a href="/" className="cv-nav__link cv-nav__link--active">Events</a>
-        <a href="/" className="cv-nav__link">About</a>
-        <a href="/" className="cv-nav__link">Contact</a>
-      </nav>
-      <div className="cv-nav__actions">
-        <a href="/login" className="cv-nav__login">Login</a>
-        <a href="/register" className="cv-nav__register">Register!</a>
+const HeroBanner = ({ event, bookmarked, onBookmark, onShare, shareCopied }) => {
+  // Use single banner image; fill remaining panels with a gradient if no banner
+  const hasBanner = !!event.banner_url;
+  return (
+    <section className="cv-hero">
+      <div className="cv-hero__mosaic">
+        {hasBanner ? (
+          // Full-width single banner instead of mosaic
+          <div className="cv-hero__panel cv-hero__panel--0" style={{ gridColumn: '1 / -1', gridRow: '1 / -1' }}>
+            <img src={event.banner_url} alt={event.title} className="cv-hero__panel-img" />
+          </div>
+        ) : (
+          // Gradient placeholder when no banner
+          <div style={{ gridColumn: '1 / -1', gridRow: '1 / -1', background: 'linear-gradient(135deg, #111827, #1F2937, #374151)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '80px' }}>
+            🎪
+          </div>
+        )}
+        <div className="cv-hero__overlay" />
       </div>
-    </div>
-  </header>
-);
 
-/* ─────────────────────────────────────────────────────
-   HERO BANNER  — mosaic of 4 images
-───────────────────────────────────────────────────── */
-const HeroBanner = ({ event, bookmarked, onBookmark, onShare, shareCopied }) => (
-  <section className="cv-hero">
-    <div className="cv-hero__mosaic">
-      {event.heroImages.map((src, i) => (
-        <div key={i} className={`cv-hero__panel cv-hero__panel--${i}`}>
-          <img src={src} alt="" className="cv-hero__panel-img" />
+      <div className="cv-hero__top-actions">
+        <button className={`cv-hero__icon-btn${shareCopied ? ' active' : ''}`} onClick={onShare} title="Share">
+          <IcoShare size={15} />
+        </button>
+        <button className={`cv-hero__icon-btn${bookmarked ? ' active' : ''}`} onClick={onBookmark} title="Save">
+          <IcoBookmark size={15} />
+        </button>
+      </div>
+
+      <div className="cv-hero__content">
+        <span className="cv-hero__category">{event.category}</span>
+        <h1 className="cv-hero__title">{event.title}</h1>
+        <div className="cv-hero__meta">
+          <span className="cv-hero__meta-item">
+            <IcoCalendar size={14} /> {formatDate(event.start_datetime)}
+          </span>
+          <span className="cv-hero__meta-item">
+            <IcoMapPin size={14} /> {event.venue}
+          </span>
+          <span className="cv-hero__meta-item">
+            <IcoUsers size={14} /> {event.registered_count || 0}+ Registered
+          </span>
         </div>
-      ))}
-      <div className="cv-hero__overlay" />
-    </div>
-
-    <div className="cv-hero__top-actions">
-      <button className={`cv-hero__icon-btn${shareCopied ? ' active' : ''}`} onClick={onShare} title="Share">
-        <IcoShare size={15} />
-      </button>
-      <button className={`cv-hero__icon-btn${bookmarked ? ' active' : ''}`} onClick={onBookmark} title="Save">
-        <IcoBookmark size={15} />
-      </button>
-    </div>
-
-    <div className="cv-hero__content">
-      <span className="cv-hero__category">{event.category}</span>
-      <h1 className="cv-hero__title">{event.title}</h1>
-      <div className="cv-hero__meta">
-        <span className="cv-hero__meta-item">
-          <IcoCalendar size={14} /> {event.date}
-        </span>
-        <span className="cv-hero__meta-item">
-          <IcoMapPin size={14} /> {event.venue}
-        </span>
-        <span className="cv-hero__meta-item">
-          <IcoUsers size={14} /> {event.attendees.toLocaleString()}+ Attendees
-        </span>
       </div>
-    </div>
-  </section>
-);
+    </section>
+  );
+};
 
 /* ─────────────────────────────────────────────────────
    ABOUT EVENT
@@ -198,51 +98,117 @@ const AboutCard = ({ event }) => (
   <div className="cv-card">
     <h2 className="cv-section-title">About the Event</h2>
     <div className="cv-about__body">
-      {event.aboutText.map((p, i) => <p key={i}>{p}</p>)}
+      {event.description
+        ? event.description.split('\n').map((p, i) => p.trim() && <p key={i}>{p}</p>)
+        : <p style={{ color: '#6B7280' }}>No description available.</p>
+      }
     </div>
-    <div className="cv-stats">
-      {event.stats.map((s, i) => (
-        <div key={i} className="cv-stat">
-          <div className="cv-stat__val">{s.value}</div>
-          <div className="cv-stat__label">{s.label}</div>
-        </div>
-      ))}
+
+    {/* Tags */}
+    {event.tags && event.tags.length > 0 && (
+      <div style={{ marginTop: '20px', display: 'flex', flexWrap: 'wrap', gap: '8px' }}>
+        {event.tags.map((tag, i) => (
+          <span key={i} style={{ fontSize: '12px', fontWeight: '600', padding: '4px 10px', borderRadius: '20px', background: '#F1F5F9', color: '#475569' }}>
+            #{tag}
+          </span>
+        ))}
+      </div>
+    )}
+
+    {/* Stats */}
+    <div className="cv-stats" style={{ marginTop: '24px' }}>
+      <div className="cv-stat">
+        <div className="cv-stat__val">{event.max_participants}</div>
+        <div className="cv-stat__label">Max Participants</div>
+      </div>
+      <div className="cv-stat">
+        <div className="cv-stat__val">{event.registered_count || 0}</div>
+        <div className="cv-stat__label">Registered</div>
+      </div>
+      <div className="cv-stat">
+        <div className="cv-stat__val">{Math.max(0, event.available_seats ?? (event.max_participants - event.registered_count))}</div>
+        <div className="cv-stat__label">Seats Left</div>
+      </div>
     </div>
   </div>
 );
 
 /* ─────────────────────────────────────────────────────
-   PRICING CARD (sidebar)
+   PRICING / REGISTRATION CARD (sidebar)
 ───────────────────────────────────────────────────── */
-const PricingCard = ({ event, registered, onRegister }) => (
-  <div className="cv-card cv-pricing">
-    <div className="cv-pricing__top">
-      <span className="cv-pricing__tier">STANDARD ACCESS</span>
-      <span className="cv-pricing__badge">Sale ends soon!</span>
+const PricingCard = ({ event, registering, onRegister, regMsg }) => {
+  const btnState = event.registration_button_state || 'REGISTER_NOW';
+  const isFree   = event.ticket_price === 0 || event.ticket_price === '0.00';
+  const price    = isFree ? 'Free' : `₹${parseFloat(event.ticket_price).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`;
+
+  const buttonConfig = {
+    REGISTER_NOW:       { text: registering ? 'Registering...' : 'Register Now', disabled: registering, style: {} },
+    ALREADY_REGISTERED: { text: "✓ You're Registered!", disabled: true, style: { background: '#10B981', cursor: 'default' } },
+    WAITLISTED:         { text: '⏳ You\'re on the Waitlist', disabled: true, style: { background: '#F59E0B', cursor: 'default' } },
+    REGISTRATION_CLOSED:{ text: 'Registration Closed', disabled: true, style: { background: '#6B7280', cursor: 'not-allowed' } },
+    EVENT_FULL:         { text: 'Event Full', disabled: true, style: { background: '#EF4444', cursor: 'not-allowed' } },
+  };
+  const btn = buttonConfig[btnState] || buttonConfig.REGISTER_NOW;
+
+  return (
+    <div className="cv-card cv-pricing">
+      <div className="cv-pricing__top">
+        <span className="cv-pricing__tier">{isFree ? 'FREE ENTRY' : 'STANDARD ACCESS'}</span>
+        {!event.deadline_passed && btnState === 'REGISTER_NOW' && (
+          <span className="cv-pricing__badge">
+            Deadline: {formatDate(event.registration_deadline)}
+          </span>
+        )}
+      </div>
+      <div className="cv-pricing__price">
+        <span className="cv-pricing__amount">{price}</span>
+        {!isFree && <span className="cv-pricing__per">/per person</span>}
+      </div>
+
+      {/* Registration deadline */}
+      <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '16px' }}>
+        <strong>Registration closes:</strong>{' '}
+        <span style={{ color: event.deadline_passed ? '#EF4444' : '#111827' }}>
+          {formatDateTime(event.registration_deadline)}
+        </span>
+      </div>
+
+      {/* Seats info */}
+      <div style={{ fontSize: '13px', color: '#6B7280', marginBottom: '20px' }}>
+        <strong>Seats available:</strong>{' '}
+        {Math.max(0, event.available_seats ?? (event.max_participants - event.registered_count))} / {event.max_participants}
+        {event.enable_waitlist && <span style={{ marginLeft: '8px', color: '#F59E0B', fontWeight: '600' }}>(Waitlist enabled)</span>}
+      </div>
+
+      {/* Status message */}
+      {regMsg && (
+        <div style={{
+          background: regMsg.type === 'success' ? '#DCFCE7' : '#FEE2E2',
+          border: `1px solid ${regMsg.type === 'success' ? '#15803D' : '#FCA5A5'}`,
+          borderRadius: '8px', padding: '10px 14px', fontSize: '13px',
+          color: regMsg.type === 'success' ? '#15803D' : '#991B1B',
+          marginBottom: '16px', fontWeight: '600',
+        }}>
+          {regMsg.text}
+        </div>
+      )}
+
+      <button
+        className="cv-btn-register"
+        onClick={onRegister}
+        disabled={btn.disabled}
+        style={btn.style}
+      >
+        {btn.text}
+      </button>
+
+      <div className="cv-pricing__secure">
+        <IcoShield size={13} />
+        <span>Secured by the event portal</span>
+      </div>
     </div>
-    <div className="cv-pricing__price">
-      <span className="cv-pricing__amount">${event.price.toFixed(2)}</span>
-      <span className="cv-pricing__per">/per</span>
-    </div>
-    <ul className="cv-checklist">
-      {event.checklist.map((item, i) => (
-        <li key={i} className="cv-checklist__item">
-          <span className="cv-checklist__icon"><IcoCheck size={13} /></span>
-          <span>{item}</span>
-        </li>
-      ))}
-    </ul>
-    {registered ? (
-      <div className="cv-pricing__registered"><IcoCheck size={16} /> You're Registered!</div>
-    ) : (
-      <button className="cv-btn-register" onClick={onRegister}>Register Now</button>
-    )}
-    <div className="cv-pricing__secure">
-      <IcoShield size={13} />
-      <span>Secure checkout powered by CompilVision Pay</span>
-    </div>
-  </div>
-);
+  );
+};
 
 /* ─────────────────────────────────────────────────────
    ATTENDEES CARD (sidebar)
@@ -250,18 +216,16 @@ const PricingCard = ({ event, registered, onRegister }) => (
 const AttendeesCard = ({ count }) => (
   <div className="cv-card cv-attendees">
     <h3 className="cv-attendees__title">Who's attending?</h3>
-    <div className="cv-avatars">
-      {ATTENDEE_AVATARS.map((src, i) => (
-        <img key={i} src={src} alt="attendee"
-          className="cv-avatar"
-          style={{ zIndex: ATTENDEE_AVATARS.length - i }}
-          onError={e => { e.target.style.display = 'none'; }}
-        />
+    <div style={{ display: 'flex', alignItems: 'center', gap: '8px', marginBottom: '12px' }}>
+      {[...Array(Math.min(5, count || 1))].map((_, i) => (
+        <div key={i} style={{ width: '32px', height: '32px', borderRadius: '50%', background: `hsl(${i * 60}, 60%, 50%)`, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '14px', color: '#FFFFFF', fontWeight: '700', marginLeft: i > 0 ? '-8px' : '0', border: '2px solid #FFFFFF' }}>
+          {String.fromCharCode(65 + i)}
+        </div>
       ))}
-      <div className="cv-avatar cv-avatar--more">+{count - ATTENDEE_AVATARS.length}</div>
+      {count > 5 && <span style={{ fontSize: '13px', color: '#6B7280', fontWeight: '600' }}>+{count - 5} more</span>}
     </div>
     <p className="cv-attendees__text">
-      Join <strong>{count}+</strong> professionals including leaders from Google, Meta, and Stripe who have already registered.
+      <strong>{count}+</strong> people have already registered for this event.
     </p>
   </div>
 );
@@ -270,38 +234,37 @@ const AttendeesCard = ({ count }) => (
    SCHEDULE ACCORDION
 ───────────────────────────────────────────────────── */
 const ScheduleAccordion = ({ schedule }) => {
-  const [openId, setOpenId] = useState(1);
+  const [openId, setOpenId] = useState(null);
   const toggle = id => setOpenId(prev => prev === id ? null : id);
+
+  if (!schedule || schedule.length === 0) return null;
 
   return (
     <div className="cv-card">
       <h2 className="cv-section-title">Event Schedule</h2>
       <div className="cv-accordion">
-        {schedule.map(item => {
-          const isOpen = openId === item.id;
+        {schedule.map((item, idx) => {
+          const isOpen = openId === idx;
           return (
-            <div key={item.id} className={`cv-acc-item${isOpen ? ' open' : ''}`}>
-              <button className="cv-acc-btn" onClick={() => toggle(item.id)}>
+            <div key={idx} className={`cv-acc-item${isOpen ? ' open' : ''}`}>
+              <button className="cv-acc-btn" onClick={() => toggle(idx)}>
                 <div className="cv-acc-time">
-                  {item.time.map((t, i) => <span key={i}>{t}</span>)}
+                  <span>{item.time || item.start_time || ''}</span>
                 </div>
                 <div className="cv-acc-info">
-                  <span className="cv-acc-title">{item.title}</span>
-                  <span className="cv-acc-speaker">{item.speaker}</span>
+                  <span className="cv-acc-title">{item.title || item.session}</span>
+                  {item.speaker && <span className="cv-acc-speaker">Speaker: {item.speaker}</span>}
                   <div className="cv-acc-tags">
-                    {item.tags.map((tag, i) => (
-                      <span key={i} className={`cv-tag cv-tag--${tag.color}`}>{tag.label}</span>
-                    ))}
+                    {item.location && <span className="cv-tag cv-tag--green">{item.location}</span>}
+                    {item.duration && <span className="cv-tag cv-tag--yellow">{item.duration}</span>}
                   </div>
                 </div>
                 <span className={`cv-acc-chevron${isOpen ? ' rotated' : ''}`}>
                   <IcoChevronDown size={16} />
                 </span>
               </button>
-              {isOpen && (
-                <div className="cv-acc-body">
-                  <p>{item.detail}</p>
-                </div>
+              {isOpen && item.description && (
+                <div className="cv-acc-body"><p>{item.description}</p></div>
               )}
             </div>
           );
@@ -314,18 +277,65 @@ const ScheduleAccordion = ({ schedule }) => {
 /* ─────────────────────────────────────────────────────
    ORGANIZER CARD
 ───────────────────────────────────────────────────── */
-const OrganizerCard = ({ organizer }) => (
-  <div className="cv-card cv-organizer">
-    <div className="cv-organizer__header">
-      <img src={organizer.img} alt={organizer.name} className="cv-organizer__img"
-        onError={e => { e.target.src = 'https://images.unsplash.com/photo-1573496799822-994c23dce00f?auto=format&fit=crop&w=150&q=80'; }} />
-      <div>
-        <div className="cv-organizer__name">{organizer.name}</div>
-        <div className="cv-organizer__role">{organizer.role}</div>
+const OrganizerCard = ({ organizer }) => {
+  if (!organizer) return null;
+  return (
+    <div className="cv-card cv-organizer">
+      <div className="cv-organizer__header">
+        <div style={{ width: '52px', height: '52px', borderRadius: '50%', background: 'linear-gradient(135deg, #F5C451, #F59E0B)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '24px', fontWeight: '700', color: '#FFFFFF', flexShrink: 0 }}>
+          {(organizer.name || 'O').charAt(0).toUpperCase()}
+        </div>
+        <div>
+          <div className="cv-organizer__name">{organizer.name}</div>
+          <div className="cv-organizer__role">{organizer.organization}</div>
+        </div>
       </div>
+      <p className="cv-organizer__bio">
+        This event is organized by {organizer.name}.
+      </p>
     </div>
-    <p className="cv-organizer__bio">{organizer.bio}</p>
-    <button className="cv-btn-outline">Follow Organizer</button>
+  );
+};
+
+/* ─────────────────────────────────────────────────────
+   CONTACT & DETAILS CARD
+───────────────────────────────────────────────────── */
+const ContactCard = ({ event }) => (
+  <div className="cv-card">
+    <h2 className="cv-section-title">Contact & Details</h2>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '12px', fontSize: '14px' }}>
+      {event.contact_email && (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <span style={{ color: '#F5C451', fontSize: '16px' }}>✉</span>
+          <a href={`mailto:${event.contact_email}`} style={{ color: '#2563EB', textDecoration: 'none' }}>{event.contact_email}</a>
+        </div>
+      )}
+      {event.contact_phone && (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <span style={{ color: '#F5C451', fontSize: '16px' }}>📞</span>
+          <span>{event.contact_phone}</span>
+        </div>
+      )}
+      {event.website && (
+        <div style={{ display: 'flex', gap: '8px' }}>
+          <span style={{ color: '#F5C451', fontSize: '16px' }}>🌐</span>
+          <a href={event.website} target="_blank" rel="noreferrer" style={{ color: '#2563EB', textDecoration: 'none' }}>
+            {event.website}
+          </a>
+        </div>
+      )}
+      {event.social_links && Object.keys(event.social_links).length > 0 && (
+        <div style={{ display: 'flex', gap: '8px', flexWrap: 'wrap', marginTop: '4px' }}>
+          {Object.entries(event.social_links).map(([platform, url]) => (
+            <a key={platform} href={url} target="_blank" rel="noreferrer"
+              style={{ padding: '4px 10px', borderRadius: '20px', border: '1px solid #E5E7EB', fontSize: '12px', fontWeight: '600', color: '#475569', textDecoration: 'none' }}
+            >
+              {platform}
+            </a>
+          ))}
+        </div>
+      )}
+    </div>
   </div>
 );
 
@@ -333,19 +343,13 @@ const OrganizerCard = ({ organizer }) => (
    VENUE & LOCATION
 ───────────────────────────────────────────────────── */
 const VenueCard = ({ event }) => {
-  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venueAddress)}`;
+  const mapsUrl = `https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(event.venue)}`;
   return (
     <div className="cv-card cv-venue">
-      <h2 className="cv-section-title">Venue &amp; Location</h2>
-      <div className="cv-venue__map">
-        <img src={event.mapImg} alt="Map of venue" className="cv-venue__map-img" />
-        <div className="cv-venue__pin"><IcoMapPin size={34} /></div>
-        <div className="cv-venue__map-label">{event.venueName}, SF</div>
-      </div>
+      <h2 className="cv-section-title">Venue & Location</h2>
       <div className="cv-venue__info">
         <div>
-          <div className="cv-venue__name">{event.venueName}</div>
-          <div className="cv-venue__address">{event.venueAddress}</div>
+          <div className="cv-venue__name">{event.venue}</div>
           <div className="cv-venue__links">
             <a href={mapsUrl} target="_blank" rel="noreferrer" className="cv-venue__link">
               <IcoNavigation size={13} /> Get Directions
@@ -359,44 +363,6 @@ const VenueCard = ({ event }) => {
     </div>
   );
 };
-
-/* ─────────────────────────────────────────────────────
-   SIMILAR EVENTS
-───────────────────────────────────────────────────── */
-const SimilarCard = ({ ev, onDetails }) => (
-  <div className="cv-sim-card">
-    <div className="cv-sim-card__img-wrap">
-      <img src={ev.img} alt={ev.title} className="cv-sim-card__img"
-        onError={e => { e.target.src = 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=400&q=80'; }} />
-    </div>
-    <div className="cv-sim-card__body">
-      <div className="cv-sim-card__date">{ev.date}</div>
-      <h3 className="cv-sim-card__title">{ev.title}</h3>
-      <div className="cv-sim-card__footer">
-        <span className={`cv-sim-card__price${ev.free ? ' free' : ''}`}>{ev.price}</span>
-        <button
-          className="cv-sim-card__details"
-          style={{ background: 'none', border: 'none', cursor: 'pointer', padding: 0 }}
-          onClick={() => onDetails && onDetails(ev.id)}
-        >
-          Details
-        </button>
-      </div>
-    </div>
-  </div>
-);
-
-const SimilarEvents = ({ events, onDetails }) => (
-  <div className="cv-similar">
-    <div className="cv-similar__header">
-      <h2 className="cv-section-title">Similar Events</h2>
-      <a href="/" className="cv-view-all">View All <IcoArrowRight size={13} /></a>
-    </div>
-    <div className="cv-similar__grid">
-      {events.map(ev => <SimilarCard key={ev.id} ev={ev} onDetails={onDetails} />)}
-    </div>
-  </div>
-);
 
 /* ─────────────────────────────────────────────────────
    FOOTER
@@ -413,7 +379,7 @@ const Footer = () => {
       <div className="cv-footer__inner">
         <div className="cv-footer__grid">
           <div className="cv-footer__brand">
-            <div className="cv-footer__logo">CompilVision</div>
+            <div className="cv-footer__logo">EventPortal</div>
             <p>Making premium events accessible and beautifully managed for the modern community.</p>
           </div>
           <div>
@@ -449,7 +415,7 @@ const Footer = () => {
           </div>
         </div>
         <div className="cv-footer__bottom">
-          <span>© {new Date().getFullYear()} CompilVision. All rights reserved.</span>
+          <span>© {new Date().getFullYear()} EventPortal. All rights reserved.</span>
           <div className="cv-footer__socials">
             {[IcoFb, IcoTw, IcoIn].map((Ic, i) => (
               <a key={i} href="/" className="cv-footer__social" aria-label="social"><Ic size={14} /></a>
@@ -461,6 +427,27 @@ const Footer = () => {
   );
 };
 
+/* ─────────────────────────────────────────────────────
+   LOADING SKELETON
+───────────────────────────────────────────────────── */
+const LoadingSkeleton = () => (
+  <div style={{ padding: '40px 20px', maxWidth: '1200px', margin: '0 auto' }}>
+    <style>{`
+      @keyframes shimmer {
+        0%   { background-position: -200% 0; }
+        100% { background-position:  200% 0; }
+      }
+    `}</style>
+    {[300, 40, 20, 20, 20].map((h, i) => (
+      <div key={i} style={{
+        height: h, borderRadius: 8, marginBottom: 16,
+        background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)',
+        backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite',
+      }} />
+    ))}
+  </div>
+);
+
 import { AppLayout } from '../components/ui/DesignSystem';
 
 /* ─────────────────────────────────────────────────────
@@ -468,12 +455,47 @@ import { AppLayout } from '../components/ui/DesignSystem';
 ───────────────────────────────────────────────────── */
 const EventDetails = () => {
   const navigate = useNavigate();
-  const { id } = useParams();
+  const { id }   = useParams();
 
+  const [event,       setEvent]       = useState(null);
+  const [loading,     setLoading]     = useState(true);
+  const [fetchErr,    setFetchErr]    = useState(null);
   const [bookmarked,  setBookmarked]  = useState(false);
   const [shareCopied, setShareCopied] = useState(false);
-  const [registered,  setRegistered]  = useState(false);
+  const [registering, setRegistering] = useState(false);
   const [regMsg,      setRegMsg]      = useState(null);
+
+  // Fetch event details from backend
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      setLoading(true);
+      setFetchErr(null);
+      try {
+        const res = await getStudentEventDetailApi(id);
+        if (!cancelled && res && res.success) {
+          setEvent(res.data);
+        } else if (!cancelled) {
+          setFetchErr('Event not found or not available.');
+        }
+      } catch (err) {
+        if (!cancelled) {
+          const status = err?.response?.status;
+          if (status === 404) {
+            setFetchErr('This event does not exist or is not available.');
+          } else if (status === 403) {
+            setFetchErr('You do not have permission to view this event.');
+          } else {
+            setFetchErr('Failed to load event details. Please try again.');
+          }
+        }
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => { cancelled = true; };
+  }, [id]);
 
   const handleShare = () => {
     navigator.clipboard?.writeText(window.location.href).catch(() => {});
@@ -481,21 +503,61 @@ const EventDetails = () => {
     setTimeout(() => setShareCopied(false), 2000);
   };
 
-  const handleRegister = () => {
-    setRegistered(true);
-    setRegMsg('Registration successful! Redirecting...');
-    setTimeout(() => navigate('/registration-success'), 1200);
+  const handleRegister = async () => {
+    if (!event) return;
+    setRegistering(true);
+    setRegMsg(null);
+    try {
+      const res = await registerForEventApi(event.id);
+      if (res && res.success) {
+        const newStatus = res.data?.status;
+        setRegMsg({
+          type: 'success',
+          text: newStatus === 'WAITLISTED'
+            ? '✓ You have been added to the waitlist!'
+            : '✓ Registration successful!',
+        });
+        // Refresh event to update button state
+        const refreshed = await getStudentEventDetailApi(event.id);
+        if (refreshed && refreshed.success) setEvent(refreshed.data);
+      } else {
+        setRegMsg({ type: 'error', text: res?.message || 'Registration failed.' });
+      }
+    } catch (err) {
+      const msg = err?.response?.data?.message || 'Registration failed. Please try again.';
+      setRegMsg({ type: 'error', text: msg });
+    } finally {
+      setRegistering(false);
+    }
   };
 
-  const handleSimilarDetails = (eventId) => {
-    navigate(`/events/${eventId}`);
-  };
+  if (loading) return <AppLayout><LoadingSkeleton /></AppLayout>;
+
+  if (fetchErr) {
+    return (
+      <AppLayout>
+        <div style={{ padding: '80px 20px', textAlign: 'center' }}>
+          <span style={{ fontSize: '64px', display: 'block', marginBottom: '16px' }}>🚫</span>
+          <h2 style={{ fontSize: '24px', fontWeight: '700', color: '#111827', marginBottom: '8px' }}>Event Unavailable</h2>
+          <p style={{ color: '#6B7280', marginBottom: '24px' }}>{fetchErr}</p>
+          <button
+            onClick={() => navigate('/student/events')}
+            style={{ padding: '12px 24px', borderRadius: '12px', background: '#F5C451', border: 'none', fontWeight: '700', cursor: 'pointer', fontSize: '14px' }}
+          >
+            ← Back to Events
+          </button>
+        </div>
+      </AppLayout>
+    );
+  }
+
+  if (!event) return null;
 
   return (
     <AppLayout>
       <main style={{ paddingBottom: '40px' }}>
         <HeroBanner
-          event={EVENT}
+          event={event}
           bookmarked={bookmarked}
           onBookmark={() => setBookmarked(b => !b)}
           onShare={handleShare}
@@ -503,43 +565,34 @@ const EventDetails = () => {
         />
 
         <div className="cv-container">
-          {regMsg && (
-            <div
-              style={{
-                background: '#DCFCE7',
-                border: '1px solid #15803D',
-                borderRadius: '12px',
-                padding: '12px 16px',
-                fontSize: '14px',
-                color: '#15803D',
-                marginBottom: '20px',
-                fontWeight: '600',
-              }}
-            >
-              {regMsg}
-            </div>
-          )}
-
           <div className="cv-layout">
             {/* Main column */}
             <div className="cv-main-col">
-              <AboutCard event={EVENT} />
-              <ScheduleAccordion schedule={EVENT.schedule} />
-              <OrganizerCard organizer={EVENT.organizer} />
-              <VenueCard event={EVENT} />
-              <SimilarEvents events={SIMILAR} onDetails={handleSimilarDetails} />
+              <AboutCard event={event} />
+              {event.schedule && event.schedule.length > 0 && (
+                <ScheduleAccordion schedule={event.schedule} />
+              )}
+              <OrganizerCard organizer={event.organizer} />
+              <ContactCard event={event} />
+              <VenueCard event={event} />
             </div>
 
             {/* Sticky Sidebar */}
             <div className="cv-sidebar">
               <div className="cv-sidebar__sticky">
-                <PricingCard event={EVENT} registered={registered} onRegister={handleRegister} />
-                <AttendeesCard count={EVENT.attendees} />
+                <PricingCard
+                  event={event}
+                  registering={registering}
+                  onRegister={handleRegister}
+                  regMsg={regMsg}
+                />
+                <AttendeesCard count={event.registered_count || 0} />
               </div>
             </div>
           </div>
         </div>
       </main>
+      <Footer />
     </AppLayout>
   );
 };
