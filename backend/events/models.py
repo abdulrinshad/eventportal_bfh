@@ -88,6 +88,20 @@ class Event(models.Model):
         default=0.00,
         help_text=_("Set to 0 for free events."),
     )
+
+    # ── Pricing (new) ─────────────────────────────────────────────────────────
+    is_paid = models.BooleanField(
+        _("is paid"),
+        default=False,
+        help_text=_("True if this is a paid event."),
+    )
+    price = models.DecimalField(
+        _("price"),
+        max_digits=10,
+        decimal_places=2,
+        default=0,
+        help_text=_("Event fee. Must be > 0 for paid events. Automatically 0 for free events."),
+    )
     visibility = models.CharField(
         _("visibility"),
         max_length=10,

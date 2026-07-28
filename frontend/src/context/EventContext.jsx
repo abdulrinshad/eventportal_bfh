@@ -123,6 +123,8 @@ export const EventProvider = ({ children }) => {
     if (eventData.visibility)   formData.append('visibility',    eventData.visibility);
 
     formData.append('enable_waitlist', eventData.enableWaitlist ? 'true' : 'false');
+    formData.append('is_paid',         eventData.is_paid ? 'true' : 'false');
+    formData.append('price',           String(eventData.is_paid ? (parseFloat(eventData.price) || 0) : 0));
     formData.append('tags',            JSON.stringify(eventData.tags || []));
     formData.append('social_links',    JSON.stringify(eventData.socialLinks || {}));
 
@@ -164,6 +166,15 @@ export const EventProvider = ({ children }) => {
         formData.append(backKey, String(val));
       }
     });
+
+    // is_paid and price — always send these together
+    if (updatedData.is_paid !== undefined) {
+      formData.append('is_paid', updatedData.is_paid ? 'true' : 'false');
+      formData.append(
+        'price',
+        String(updatedData.is_paid ? (parseFloat(updatedData.price) || 0) : 0)
+      );
+    }
 
     // Tags and social_links: send as JSON strings (serializer parses them)
     if (updatedData.tags !== undefined) {

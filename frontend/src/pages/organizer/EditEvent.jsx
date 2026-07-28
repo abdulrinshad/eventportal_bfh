@@ -107,6 +107,8 @@ export default function EditEvent() {
     contactPhone:    '',
     website:         '',
     tags:            [],
+    is_paid:         false,
+    price:           '',
   });
 
   // ── Fetch event on mount ─────────────────────────────────────────────────
@@ -140,6 +142,13 @@ export default function EditEvent() {
             contactPhone:         evt.contact_phone    || '',
             website:              evt.website          || '',
             tags:                 Array.isArray(evt.tags) ? evt.tags : [],
+            // Pricing: prefer explicit is_paid field, fallback to price > 0
+            is_paid:              evt.is_paid === true || evt.is_paid === 'true'
+                                    ? true
+                                    : (evt.price != null && Number(evt.price) > 0),
+            price:                evt.price != null && Number(evt.price) > 0
+                                    ? String(Number(evt.price))
+                                    : '',
           });
         }
       } catch (err) {
@@ -193,6 +202,8 @@ export default function EditEvent() {
         registration_deadline: fromDatetimeLocal(form.registrationDeadline),
         tags:                 form.tags,
         bannerFile:           form.bannerFile,        // File | null
+        is_paid:              form.is_paid,
+        price:                form.is_paid ? (parseFloat(form.price) || 0) : 0,
       };
       const updated = await updateEvent(id, payload);
 
@@ -529,22 +540,51 @@ export default function EditEvent() {
 
               {/* Pricing */}
               <div className="ee-card">
-                <h2 className="ee-card-title-sm">Pricing (USD)</h2>
-                <div className="ee-pricing-row">
-                  <div className="ee-pricing-input-wrap">
-                    <span className="ee-dollar">$</span>
+                <h2 className="ee-card-title-sm">Event Pricing</h2>
+
+                {/* Free / Paid toggle */}
+                <div style={{ display: 'flex', gap: '24px', marginBottom: form.is_paid ? '16px' : '0' }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
                     <input
-                      className="ee-input ee-input--price"
-                      type="number"
-                      min={0}
-                      step="0.01"
-                      value={form.ticketPrice}
-                      onChange={(e) => updateField('ticketPrice', e.target.value)}
-                      aria-label="Price per ticket"
+                      type="radio"
+                      name="ee-event-type"
+                      checked={!form.is_paid}
+                      onChange={() => updateField('is_paid', false)}
+                      style={{ width: '15px', height: '15px', accentColor: '#F5C451', cursor: 'pointer' }}
                     />
-                  </div>
-                  <span className="ee-per-ticket">Per Ticket</span>
+                    Free Event
+                  </label>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: '8px', cursor: 'pointer', fontSize: '14px', fontWeight: '600', color: '#374151' }}>
+                    <input
+                      type="radio"
+                      name="ee-event-type"
+                      checked={form.is_paid}
+                      onChange={() => updateField('is_paid', true)}
+                      style={{ width: '15px', height: '15px', accentColor: '#F5C451', cursor: 'pointer' }}
+                    />
+                    Paid Event
+                  </label>
                 </div>
+
+                {/* Amount — only shown when Paid */}
+                {form.is_paid && (
+                  <div className="ee-pricing-row">
+                    <div className="ee-pricing-input-wrap">
+                      <span className="ee-dollar">₹</span>
+                      <input
+                        className="ee-input ee-input--price"
+                        type="number"
+                        min={0.01}
+                        step="0.01"
+                        placeholder="Enter event fee"
+                        value={form.price}
+                        onChange={(e) => updateField('price', e.target.value)}
+                        aria-label="Event price in INR"
+                      />
+                    </div>
+                    <span className="ee-per-ticket">Per Person</span>
+                  </div>
+                )}
               </div>
 
               {/* Max Participants */}

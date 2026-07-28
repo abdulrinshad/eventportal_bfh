@@ -275,7 +275,16 @@ function ExploreEvents() {
                             <FiMapPin /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.venue}</span>
                           </div>
                           <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #F1F5F9' }}>
-                            <span style={{ fontSize: '15px', fontWeight: '800', color: '#111827' }}>{evt.price}</span>
+                            {evt.is_paid === false || evt.isFree ? (
+                              <span style={{ fontSize: '12px', fontWeight: '800', color: '#15803D', background: '#DCFCE7', padding: '2px 10px', borderRadius: '20px' }}>FREE</span>
+                            ) : (
+                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#111827' }}>
+                                {evt.price && (typeof evt.price === 'number' || !isNaN(parseFloat(evt.price)))
+                                  ? `₹${parseFloat(evt.price).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`
+                                  : evt.price || 'Paid'
+                                }
+                              </span>
+                            )}
                             <span style={{ fontSize: '12px', fontWeight: '700', color: '#F5C451' }}>View Details</span>
                           </div>
                         </div>

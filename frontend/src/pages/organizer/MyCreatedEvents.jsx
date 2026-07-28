@@ -112,7 +112,17 @@ export default function MyCreatedEvents() {
                       {evt.start_datetime ? new Date(evt.start_datetime).toLocaleDateString() : '—'}
                     </span>
                   </div>
-                  <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 8px 0', fontFamily: 'var(--font-heading)' }}>{evt.title}</h3>
+                  <h3 style={{ fontSize: '18px', fontWeight: '700', color: '#111827', margin: '0 0 6px 0', fontFamily: 'var(--font-heading)' }}>{evt.title}</h3>
+                  {/* Pricing badge */}
+                  {evt.is_paid ? (
+                    <span style={{ fontSize: '13px', fontWeight: '700', color: '#111827', marginBottom: '6px', display: 'inline-block' }}>
+                      ₹{parseFloat(evt.price || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}
+                    </span>
+                  ) : (
+                    <span style={{ fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '6px', background: '#DCFCE7', color: '#15803D', marginBottom: '6px', display: 'inline-block' }}>
+                      FREE
+                    </span>
+                  )}
                   <p style={{ fontSize: '13px', color: '#475569', margin: '0 0 16px 0', overflow: 'hidden', flex: 1 }}>{evt.venue || '—'}</p>
 
                   <div style={{ display: 'flex', gap: '8px', marginTop: 'auto' }}>

@@ -83,6 +83,8 @@ class StudentEventListSerializer(serializers.ModelSerializer):
             "end_datetime",
             "registration_deadline",
             "ticket_price",
+            "is_paid",
+            "price",
             "is_free",
             "max_participants",
             "available_seats",
@@ -97,6 +99,9 @@ class StudentEventListSerializer(serializers.ModelSerializer):
         return _absolute_url(obj.banner, self.context.get("request"))
 
     def get_is_free(self, obj):
+        # Prefer new is_paid field; fall back to ticket_price for old events
+        if hasattr(obj, 'is_paid') and obj.is_paid is not None:
+            return not obj.is_paid
         return obj.ticket_price == 0
 
 
@@ -142,6 +147,8 @@ class StudentEventDetailSerializer(serializers.ModelSerializer):
             "enable_waitlist",
             # Pricing
             "ticket_price",
+            "is_paid",
+            "price",
             "is_free",
             # Contact
             "contact_email",
@@ -160,6 +167,9 @@ class StudentEventDetailSerializer(serializers.ModelSerializer):
         return _absolute_url(obj.banner, self.context.get("request"))
 
     def get_is_free(self, obj):
+        # Prefer new is_paid field; fall back to ticket_price for old events
+        if hasattr(obj, 'is_paid') and obj.is_paid is not None:
+            return not obj.is_paid
         return obj.ticket_price == 0
 
     def get_deadline_passed(self, obj):
