@@ -10,6 +10,14 @@ from .views import (
     StudentRegistrationSummaryView,
 )
 
+from notifications.views import (
+    StudentNotificationDeleteView,
+    StudentNotificationListView,
+    StudentNotificationMarkAllReadView,
+    StudentNotificationMarkReadView,
+    StudentNotificationUnreadCountView,
+)
+
 urlpatterns = [
     # Dashboard
     path("student/dashboard/",                          StudentDashboardView.as_view(),           name="student-dashboard"),
@@ -23,4 +31,11 @@ urlpatterns = [
     path("student/registrations/",                      StudentRegistrationListView.as_view(),     name="student-registration-list"),
     path("student/registrations/summary/",              StudentRegistrationSummaryView.as_view(),  name="student-registration-summary"),
     path("student/registrations/<uuid:pk>/cancel/",     StudentRegistrationCancelView.as_view(),   name="student-registration-cancel"),
+
+    # Notifications
+    path("student/notifications/",                      StudentNotificationListView.as_view(),     name="student-notifications-list"),
+    path("student/notifications/unread-count/",         StudentNotificationUnreadCountView.as_view(), name="student-notifications-unread-count"),
+    path("student/notifications/<uuid:pk>/read/",       StudentNotificationMarkReadView.as_view(), name="student-notifications-mark-read"),
+    path("student/notifications/mark-all-read/",        StudentNotificationMarkAllReadView.as_view(), name="student-notifications-mark-all-read"),
+    path("student/notifications/<uuid:pk>/",            StudentNotificationDeleteView.as_view(),   name="student-notifications-delete"),
 ]

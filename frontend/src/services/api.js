@@ -346,7 +346,57 @@ export const updateOrganizerProfileApi = async (formData) => {
 
 
 /* ==========================================
-   NOTIFICATIONS
+   STUDENT NOTIFICATIONS
+   ========================================== */
+
+/**
+ * GET /api/student/notifications/
+ * Returns all notifications for the authenticated student.
+ */
+export const getStudentNotificationsApi = async () => {
+  const response = await api.get('/student/notifications/');
+  return response.data; // { success: true, message, data: [...] }
+};
+
+/**
+ * GET /api/student/notifications/unread-count/
+ * Returns count of unread notifications for the authenticated student.
+ */
+export const getStudentUnreadCountApi = async () => {
+  const response = await api.get('/student/notifications/unread-count/');
+  return response.data; // { success: true, count: N }
+};
+
+/**
+ * PATCH /api/student/notifications/:id/read/
+ * Marks a single notification as read.
+ */
+export const markStudentNotificationReadApi = async (id) => {
+  const response = await api.patch(`/student/notifications/${id}/read/`);
+  return response.data; // { success: true, message, data: { id, is_read } }
+};
+
+/**
+ * PATCH /api/student/notifications/mark-all-read/
+ * Marks all notifications as read for the student.
+ */
+export const markAllStudentNotificationsReadApi = async () => {
+  const response = await api.patch('/student/notifications/mark-all-read/');
+  return response.data; // { success: true, message, count }
+};
+
+/**
+ * DELETE /api/student/notifications/:id/
+ * Deletes a single notification by ID.
+ */
+export const deleteStudentNotificationApi = async (id) => {
+  const response = await api.delete(`/student/notifications/${id}/`);
+  return response.data; // { success: true, message }
+};
+
+
+/* ==========================================
+   NOTIFICATIONS (General / Organizer)
    ========================================== */
 
 /**

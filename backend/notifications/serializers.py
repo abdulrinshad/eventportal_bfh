@@ -5,8 +5,7 @@ from .models import Notification
 
 class NotificationSerializer(serializers.ModelSerializer):
     """
-    Read-only serializer for the Notification Center page.
-    Returns all fields needed by the frontend.
+    Read-only serializer for general / organizer notifications.
     """
 
     class Meta:
@@ -20,3 +19,34 @@ class NotificationSerializer(serializers.ModelSerializer):
             "created_at",
         ]
         read_only_fields = fields
+
+
+class StudentNotificationSerializer(serializers.ModelSerializer):
+    """
+    Read-only serializer for student notifications.
+    Returns: id, title, message, type, event (object/null), is_read, created_at
+    """
+
+    type = serializers.CharField(source="notification_type", read_only=True)
+    event = serializers.SerializerMethodField()
+
+    class Meta:
+        model = Notification
+        fields = [
+            "id",
+            "title",
+            "message",
+            "type",
+            "event",
+            "is_read",
+            "created_at",
+        ]
+        read_only_fields = fields
+
+    def get_event(self, obj):
+        if obj.event:
+            return {
+                "id": str(obj.event.id),
+                "title": obj.event.title,
+            }
+        return None
