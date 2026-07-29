@@ -210,6 +210,27 @@ export const rejectOrganizerRequestApi = async (id) => {
    ========================================== */
 
 /**
+ * GET /api/student/profile/
+ * Returns currently authenticated student's profile data.
+ */
+export const getStudentProfileApi = async () => {
+  const response = await api.get('/student/profile/');
+  return response.data; // { success: true, message, data: { ... } }
+};
+
+/**
+ * PATCH /api/student/profile/
+ * Updates authenticated student's profile fields.
+ * Accepts FormData (multipart/form-data) if profile_image or cover_image is uploaded.
+ */
+export const updateStudentProfileApi = async (formDataOrData) => {
+  const isFormData = formDataOrData instanceof FormData;
+  const config = isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+  const response = await api.patch('/student/profile/', formDataOrData, config);
+  return response.data; // { success: true, message, data: { ... } }
+};
+
+/**
  * GET /api/student/dashboard/
  * Returns live stats and personalised content for the student dashboard.
  */

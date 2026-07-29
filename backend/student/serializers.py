@@ -8,6 +8,7 @@ Rules:
 - Organizer info is nested: {id, name, organization}.
 """
 
+import re
 from django.contrib.auth import get_user_model
 from django.utils import timezone
 from rest_framework import serializers
@@ -16,6 +17,116 @@ from events.models import Event
 from registrations.models import Registration
 
 User = get_user_model()
+
+
+class StudentProfileSerializer(serializers.ModelSerializer):
+    """
+    Serializer for Student Profile endpoints.
+    Exposes only user-facing profile fields and handles image & text validation.
+    """
+    full_name = serializers.SerializerMethodField()
+    phone = serializers.CharField(source="phone_number", required=False, allow_null=True, allow_blank=True)
+    profile_image = serializers.SerializerMethodField()
+    cover_image = serializers.SerializerMethodField()
+    email_verified = serializers.BooleanField(source="is_email_verified", read_only=True)
+    joined_at = serializers.DateTimeField(source="date_joined", read_only=True)
+    account_status = serializers.SerializerMethodField()
+
+    class Meta:
+        model = User
+        fields = [
+            "id",
+            "full_name",
+            "first_name",
+            "last_name",
+            "email",
+            "phone",
+            "phone_number",
+            "profile_image",
+            "cover_image",
+            "role",
+            "bio",
+            "email_verified",
+            "joined_at",
+            "account_status",
+        ]
+        read_only_fields = [
+            "id",
+            "email",
+            "role",
+            "email_verified",
+            "joined_at",
+            "account_status",
+        ]
+        extra_kwargs = {
+            "first_name": {"required": False, "allow_blank": False},
+            "last_name": {"required": False, "allow_blank": False},
+            "bio": {"required": False, "allow_null": True, "allow_blank": True},
+        }
+
+    def get_full_name(self, obj):
+        name = f"{obj.first_name or ''} {obj.last_name or ''}".strip()
+        return name if name else obj.email.split("@")[0]
+
+    def get_profile_image(self, obj):
+        request = self.context.get("request")
+        if obj.profile_image:
+            if request:
+                return request.build_absolute_uri(obj.profile_image.url)
+            return obj.profile_image.url
+        return None
+
+    def get_cover_image(self, obj):
+        request = self.context.get("request")
+        if obj.cover_image:
+            if request:
+                return request.build_absolute_uri(obj.cover_image.url)
+            return obj.cover_image.url
+        return None
+
+    def get_account_status(self, obj):
+        return "ACTIVE" if obj.is_active else "INACTIVE"
+
+    def validate_first_name(self, value):
+        if value is not None and not value.strip():
+            raise serializers.ValidationError("First name cannot be empty.")
+        return value.strip() if value else value
+
+    def validate_last_name(self, value):
+        if value is not None and not value.strip():
+            raise serializers.ValidationError("Last name cannot be empty.")
+        return value.strip() if value else value
+
+    def validate_phone_number(self, value):
+        if value:
+            clean_val = value.strip()
+            if not re.match(r"^\+?[0-9\s\-()]{7,20}$", clean_val):
+                raise serializers.ValidationError("Invalid phone number format.")
+            return clean_val
+        return value
+
+    def validate(self, attrs):
+        request = self.context.get("request")
+        if request and request.FILES:
+            profile_img = request.FILES.get("profile_image")
+            cover_img = request.FILES.get("cover_image")
+
+            allowed_exts = (".jpg", ".jpeg", ".png", ".webp", ".gif")
+            max_size = 5 * 1024 * 1024  # 5MB
+
+            for img_file, field_name in [(profile_img, "profile_image"), (cover_img, "cover_image")]:
+                if img_file:
+                    if img_file.size > max_size:
+                        raise serializers.ValidationError({
+                            field_name: "Image file size cannot exceed 5MB."
+                        })
+                    ext = "." + img_file.name.split(".")[-1].lower() if "." in img_file.name else ""
+                    if ext not in allowed_exts:
+                        raise serializers.ValidationError({
+                            field_name: "Unsupported image format. Allowed formats: JPEG, PNG, WEBP, GIF."
+                        })
+
+        return attrs
 
 
 # ─────────────────────────────────────────────────────────────────────────────

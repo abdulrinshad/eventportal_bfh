@@ -29,6 +29,7 @@ from .serializers import (
     StudentEventDetailSerializer,
     StudentEventListSerializer,
     StudentRegistrationListSerializer,
+    StudentProfileSerializer,
 )
 
 User = get_user_model()
@@ -675,3 +676,52 @@ class StudentRegistrationCancelView(APIView):
             {"registration_id": str(reg.id), "status": reg.status},
             f'Registration for "{reg.event.title}" has been cancelled.',
         )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Student Profile View
+# ─────────────────────────────────────────────────────────────────────────────
+
+class StudentProfileView(APIView):
+    """
+    GET   /api/student/profile/
+    PUT   /api/student/profile/
+    PATCH /api/student/profile/
+
+    Allows authenticated students to view and update their profile details.
+    Only allows editing: first_name, last_name, phone_number, bio, profile_image, cover_image.
+    """
+    permission_classes = [IsStudentUser]
+
+    def get(self, request):
+        serializer = StudentProfileSerializer(request.user, context={"request": request})
+        return _success(serializer.data, "Profile fetched successfully.")
+
+    def _update_profile(self, request, partial=True):
+        user = request.user
+        serializer = StudentProfileSerializer(
+            user,
+            data=request.data,
+            partial=partial,
+            context={"request": request}
+        )
+
+        if not serializer.is_valid():
+            return _error("Validation Failed", serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+
+        # Handle uploaded image files if sent via multipart/form-data
+        if request.FILES:
+            if "profile_image" in request.FILES:
+                user.profile_image = request.FILES["profile_image"]
+            if "cover_image" in request.FILES:
+                user.cover_image = request.FILES["cover_image"]
+
+        serializer.save()
+        return _success(serializer.data, "Profile updated successfully.")
+
+    def put(self, request):
+        return self._update_profile(request, partial=True)
+
+    def patch(self, request):
+        return self._update_profile(request, partial=True)
+

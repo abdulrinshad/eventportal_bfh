@@ -27,7 +27,6 @@ export default function StudentLayout({ children, activeItem }) {
     { name: 'Explore Events', path: '/student/events', icon: <FiCompass /> },
     { name: 'My Registrations', path: '/student/registrations', icon: <FiBookmark /> },
     { name: 'Notifications', path: '/student/notifications', icon: <FiBell /> },
-    { name: 'Settings', path: '/student/settings', icon: <FiSettings /> },
   ];
 
   const currentActive = menuItems.find(item => location.pathname.startsWith(item.path))?.name || activeItem || 'Dashboard';

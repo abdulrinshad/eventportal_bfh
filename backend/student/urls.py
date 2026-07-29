@@ -8,6 +8,7 @@ from .views import (
     StudentRegistrationCancelView,
     StudentRegistrationListView,
     StudentRegistrationSummaryView,
+    StudentProfileView,
 )
 
 from notifications.views import (
@@ -19,8 +20,9 @@ from notifications.views import (
 )
 
 urlpatterns = [
-    # Dashboard
+    # Dashboard & Profile
     path("student/dashboard/",                          StudentDashboardView.as_view(),           name="student-dashboard"),
+    path("student/profile/",                            StudentProfileView.as_view(),             name="student-profile"),
 
     # Events (APPROVED only)
     path("student/events/",                             StudentEventListView.as_view(),            name="student-event-list"),
