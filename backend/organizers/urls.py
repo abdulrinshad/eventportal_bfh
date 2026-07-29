@@ -1,7 +1,8 @@
-﻿from django.urls import path
+from django.urls import path
 
 from .views import (
     BroadcastEmailView,
+    OrganizerAnalyticsView,
     OrganizerChangePasswordView,
     OrganizerProfileView,
     OrganizerSettingsView,
@@ -25,4 +26,7 @@ urlpatterns = [
     path("organizer/participants/statistics/",  ParticipantStatisticsView.as_view(), name="organizer-participant-statistics"),
     path("organizer/participants/export/",      ParticipantExportView.as_view(),     name="organizer-participant-export"),
     path("organizer/participants/broadcast/",   BroadcastEmailView.as_view(),        name="organizer-participant-broadcast"),
+
+    # ── Analytics ─────────────────────────────────────────────────────────────
+    path("organizer/analytics/",               OrganizerAnalyticsView.as_view(),    name="organizer-analytics"),
 ]

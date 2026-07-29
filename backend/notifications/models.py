@@ -32,6 +32,8 @@ class Notification(models.Model):
         NEW_REGISTRATION       = "NEW_REGISTRATION", _("New Registration")
         REGISTRATION_CANCELLED = "REGISTRATION_CANCELLED", _("Registration Cancelled")
         GENERAL                = "GENERAL", _("General")
+        PAYMENT_RECEIVED       = "PAYMENT_RECEIVED", _("Payment Received")
+
 
     id = models.UUIDField(
         primary_key=True,

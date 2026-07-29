@@ -25,6 +25,10 @@ const IcoItalic  = ({ size = 16 }) => <Svg size={size}><line x1="19" y1="4" x2="
 const IcoLink    = ({ size = 16 }) => <Svg size={size}><path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/></Svg>;
 const IcoSearch  = ({ size = 16 }) => <Svg size={size}><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></Svg>;
 
+/* ─── Inline field error ──────────────────────────────────────────────────── */
+const FieldError = ({ msg }) =>
+  msg ? <span style={{ fontSize: '12px', color: '#EF4444', marginTop: '4px', display: 'block' }}>{msg}</span> : null;
+
 /**
  * Backend category codes that map to the display labels shown in the UI.
  */
@@ -44,13 +48,20 @@ const CATEGORY_OPTIONS = [
 /* ─────────────────────────────────────────────────────
    BannerUpload sub-component
    ───────────────────────────────────────────────────── */
-const BannerUpload = ({ preview, onFile }) => {
+const BannerUpload = ({ preview, onFile, error }) => {
   const inputRef = useRef();
+
+  const handleFile = (file) => {
+    if (!file) return;
+    onFile(file);
+  };
+
   const handleDrop = (e) => {
     e.preventDefault();
     const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) onFile(file);
+    if (file) handleFile(file);
   };
+
   const handleClick = () => inputRef.current?.click();
 
   return (
@@ -83,11 +94,12 @@ const BannerUpload = ({ preview, onFile }) => {
         <input
           ref={inputRef}
           type="file"
-          accept="image/*"
+          accept="image/png,image/jpeg,image/jpg,image/webp"
           style={{ display: 'none' }}
-          onChange={(e) => { if (e.target.files[0]) onFile(e.target.files[0]); }}
+          onChange={(e) => { if (e.target.files[0]) handleFile(e.target.files[0]); }}
         />
       </div>
+      {error && <FieldError msg={error} />}
     </div>
   );
 };
@@ -131,14 +143,14 @@ const EventPricingCard = ({ isPaid, price, onIsPaidChange, onPriceChange, priceE
         <label className="ce-label" htmlFor="ce-price">
           Charge Amount <span style={{ color: '#EF4444' }}>*</span>
         </label>
-        <div className="ce-pricing-input-wrap" style={{ display: 'flex', alignItems: 'center', border: '1.5px solid #E2E8F0', borderRadius: '10px', overflow: 'hidden', background: '#FFFFFF' }}>
+        <div className="ce-pricing-input-wrap" style={{ display: 'flex', alignItems: 'center', border: `1.5px solid ${priceError ? '#EF4444' : '#E2E8F0'}`, borderRadius: '10px', overflow: 'hidden', background: '#FFFFFF' }}>
           <span style={{
             padding: '0 12px',
             fontSize: '15px',
             fontWeight: '700',
             color: '#374151',
             background: '#F8FAFC',
-            borderRight: '1.5px solid #E2E8F0',
+            borderRight: `1.5px solid ${priceError ? '#EF4444' : '#E2E8F0'}`,
             height: '100%',
             display: 'flex',
             alignItems: 'center',
@@ -156,11 +168,7 @@ const EventPricingCard = ({ isPaid, price, onIsPaidChange, onPriceChange, priceE
             style={{ border: 'none', borderRadius: 0, flex: 1, paddingLeft: '10px' }}
           />
         </div>
-        {priceError && (
-          <span style={{ fontSize: '12px', color: '#EF4444', marginTop: '4px', display: 'block' }}>
-            {priceError}
-          </span>
-        )}
+        <FieldError msg={priceError} />
         <span className="ce-field-hint">E.g. ₹250 or ₹500. Decimals allowed.</span>
       </div>
     )}
@@ -170,9 +178,9 @@ const EventPricingCard = ({ isPaid, price, onIsPaidChange, onPriceChange, priceE
 /* ─────────────────────────────────────────────────────
    GeneralInfoTab — only tab (General Info)
    ───────────────────────────────────────────────────── */
-const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
+const GeneralInfoTab = ({ form, onChange, onBannerFile, errors, setErrors }) => (
   <div className="ce-tab-content">
-    <BannerUpload preview={form.bannerPreview} onFile={onBannerFile} />
+    <BannerUpload preview={form.bannerPreview} onFile={onBannerFile} error={errors.banner} />
 
     <div className="ce-form-card">
       <div className="ce-form-row">
@@ -185,9 +193,14 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
             type="text"
             placeholder="e.g. CompilVision Global Tech Summit 2026"
             value={form.title}
-            onChange={(e) => onChange('title', e.target.value)}
+            onChange={(e) => {
+              onChange('title', e.target.value);
+              if (errors.title) setErrors(prev => ({ ...prev, title: '' }));
+            }}
             maxLength={100}
+            style={{ borderColor: errors.title ? '#EF4444' : undefined }}
           />
+          <FieldError msg={errors.title} />
           <span className="ce-field-hint">Catchy titles work best. Limit to 100 characters.</span>
         </div>
         {/* Category */}
@@ -198,7 +211,11 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
               id="ce-category"
               className="ce-select"
               value={form.category}
-              onChange={(e) => onChange('category', e.target.value)}
+              onChange={(e) => {
+                onChange('category', e.target.value);
+                if (errors.category) setErrors(prev => ({ ...prev, category: '' }));
+              }}
+              style={{ borderColor: errors.category ? '#EF4444' : undefined }}
             >
               <option value="">Select a category</option>
               {CATEGORY_OPTIONS.map((c) => (
@@ -206,6 +223,7 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
               ))}
             </select>
           </div>
+          <FieldError msg={errors.category} />
         </div>
       </div>
 
@@ -226,8 +244,13 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
             rows={7}
             placeholder="Describe what makes your event unique..."
             value={form.description}
-            onChange={(e) => onChange('description', e.target.value)}
+            onChange={(e) => {
+              onChange('description', e.target.value);
+              if (errors.description) setErrors(prev => ({ ...prev, description: '' }));
+            }}
+            style={{ borderColor: errors.description ? '#EF4444' : undefined }}
           />
+          <FieldError msg={errors.description} />
         </div>
 
         {/* Max Participants */}
@@ -240,12 +263,17 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
               type="number"
               min={1}
               value={form.maxParticipants}
-              onChange={(e) => onChange('maxParticipants', e.target.value)}
+              onChange={(e) => {
+                onChange('maxParticipants', e.target.value);
+                if (errors.maxParticipants) setErrors(prev => ({ ...prev, maxParticipants: '' }));
+              }}
+              style={{ borderColor: errors.maxParticipants ? '#EF4444' : undefined }}
             />
             <span className="ce-input-suffix-icon" title="Maximum number of registered attendees">
               <IcoInfo size={15} />
             </span>
           </div>
+          <FieldError msg={errors.maxParticipants} />
           <label className="ce-checkbox-row">
             <input
               type="checkbox"
@@ -259,13 +287,16 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
       </div>
     </div>
 
-    {/* Event Pricing — between Description and Time & Location */}
+    {/* Event Pricing */}
     <EventPricingCard
       isPaid={form.is_paid}
       price={form.price}
       onIsPaidChange={(val) => onChange('is_paid', val)}
-      onPriceChange={(val) => onChange('price', val)}
-      priceError={priceError}
+      onPriceChange={(val) => {
+        onChange('price', val);
+        if (errors.price) setErrors(prev => ({ ...prev, price: '' }));
+      }}
+      priceError={errors.price}
     />
 
     {/* Time & Location */}
@@ -281,8 +312,13 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
             className="ce-input"
             type="datetime-local"
             value={form.startDatetime}
-            onChange={(e) => onChange('startDatetime', e.target.value)}
+            onChange={(e) => {
+              onChange('startDatetime', e.target.value);
+              if (errors.startDatetime) setErrors(prev => ({ ...prev, startDatetime: '' }));
+            }}
+            style={{ borderColor: errors.startDatetime ? '#EF4444' : undefined }}
           />
+          <FieldError msg={errors.startDatetime} />
         </div>
         <div className="ce-field ce-field--half">
           <label className="ce-label" htmlFor="ce-venue">Venue / Location <span style={{ color: '#EF4444' }}>*</span></label>
@@ -294,9 +330,14 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
               type="text"
               placeholder="Search for a venue..."
               value={form.venue}
-              onChange={(e) => onChange('venue', e.target.value)}
+              onChange={(e) => {
+                onChange('venue', e.target.value);
+                if (errors.venue) setErrors(prev => ({ ...prev, venue: '' }));
+              }}
+              style={{ borderColor: errors.venue ? '#EF4444' : undefined }}
             />
           </div>
+          <FieldError msg={errors.venue} />
         </div>
       </div>
       <div className="ce-form-row">
@@ -307,8 +348,13 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
             className="ce-input"
             type="datetime-local"
             value={form.endDatetime}
-            onChange={(e) => onChange('endDatetime', e.target.value)}
+            onChange={(e) => {
+              onChange('endDatetime', e.target.value);
+              if (errors.endDatetime) setErrors(prev => ({ ...prev, endDatetime: '' }));
+            }}
+            style={{ borderColor: errors.endDatetime ? '#EF4444' : undefined }}
           />
+          <FieldError msg={errors.endDatetime} />
         </div>
         <div className="ce-field ce-field--half">
           <label className="ce-label" htmlFor="ce-deadline">Registration Deadline <span style={{ color: '#EF4444' }}>*</span></label>
@@ -317,8 +363,13 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
             className="ce-input"
             type="datetime-local"
             value={form.registrationDeadline}
-            onChange={(e) => onChange('registrationDeadline', e.target.value)}
+            onChange={(e) => {
+              onChange('registrationDeadline', e.target.value);
+              if (errors.registrationDeadline) setErrors(prev => ({ ...prev, registrationDeadline: '' }));
+            }}
+            style={{ borderColor: errors.registrationDeadline ? '#EF4444' : undefined }}
           />
+          <FieldError msg={errors.registrationDeadline} />
         </div>
       </div>
     </div>
@@ -337,19 +388,36 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
             type="email"
             placeholder="e.g. support@compilvision.com"
             value={form.contactEmail}
-            onChange={(e) => onChange('contactEmail', e.target.value)}
+            onChange={(e) => {
+              onChange('contactEmail', e.target.value);
+              if (errors.contactEmail) setErrors(prev => ({ ...prev, contactEmail: '' }));
+            }}
+            style={{ borderColor: errors.contactEmail ? '#EF4444' : undefined }}
           />
+          <FieldError msg={errors.contactEmail} />
         </div>
         <div className="ce-field ce-field--half">
-          <label className="ce-label" htmlFor="ce-phone">Contact Phone</label>
+          <label className="ce-label" htmlFor="ce-phone">
+            Contact Phone
+            <span style={{ fontSize: '11px', color: '#94A3B8', fontWeight: '400', marginLeft: '6px' }}>(10 digits)</span>
+          </label>
           <input
             id="ce-phone"
             className="ce-input"
             type="tel"
-            placeholder="e.g. +1 555-000-0000"
+            placeholder="e.g. 9876543210"
             value={form.contactPhone}
-            onChange={(e) => onChange('contactPhone', e.target.value)}
+            maxLength={10}
+            onChange={(e) => {
+              // Only allow numeric digits
+              const val = e.target.value.replace(/\D/g, '');
+              onChange('contactPhone', val);
+              if (errors.contactPhone) setErrors(prev => ({ ...prev, contactPhone: '' }));
+            }}
+            style={{ borderColor: errors.contactPhone ? '#EF4444' : undefined }}
           />
+          <FieldError msg={errors.contactPhone} />
+          <span className="ce-field-hint">Exactly 10 digits, numbers only.</span>
         </div>
       </div>
     </div>
@@ -361,15 +429,17 @@ const GeneralInfoTab = ({ form, onChange, onBannerFile, priceError }) => (
    ───────────────────────────────────────────────────── */
 export default function CreateEvent() {
   const { createEvent } = useContext(EventContext);
-  const { user } = useContext(AuthContext);
-  const navigate = useNavigate();
+  const { user }        = useContext(AuthContext);
+  const navigate        = useNavigate();
 
   const [submitting, setSubmitting] = useState(false);
   const [savingDraft, setSavingDraft] = useState(false);
-  const [priceError, setPriceError] = useState('');
 
   // Banner file stored separately so it can be appended to FormData
   const [bannerFile, setBannerFile] = useState(null);
+
+  // Inline field errors
+  const [errors, setErrors] = useState({});
 
   const [form, setForm] = useState({
     bannerPreview:        '',
@@ -392,46 +462,93 @@ export default function CreateEvent() {
 
   const updateField = (key, val) => {
     setForm((f) => ({ ...f, [key]: val }));
-    // Clear price error when pricing changes
-    if (key === 'is_paid' || key === 'price') {
-      setPriceError('');
-    }
   };
 
   const handleBannerFile = (file) => {
+    // Validate file type
+    const allowedTypes = ['image/jpeg', 'image/jpg', 'image/png', 'image/webp'];
+    if (!allowedTypes.includes(file.type)) {
+      setErrors(prev => ({ ...prev, banner: 'Only PNG, JPG, or WebP images are allowed.' }));
+      return;
+    }
+    // Validate file size (10 MB)
+    if (file.size > 10 * 1024 * 1024) {
+      setErrors(prev => ({ ...prev, banner: 'Image must be smaller than 10 MB.' }));
+      return;
+    }
+    setErrors(prev => ({ ...prev, banner: '' }));
     setBannerFile(file);
     updateField('bannerPreview', URL.createObjectURL(file));
   };
 
   /**
-   * Validate required fields and return an error message or null.
+   * Full validation — returns an errors object. Empty object means no errors.
    */
   const validate = () => {
-    if (!form.title.trim())               return 'Event Title is required.';
-    if (!form.category)                   return 'Please select a category.';
-    if (!form.description.trim())         return 'Description is required.';
-    if (!form.startDatetime)              return 'Start Date & Time is required.';
-    if (!form.endDatetime)                return 'End Date & Time is required.';
-    if (!form.registrationDeadline)       return 'Registration Deadline is required.';
-    if (!form.venue.trim())               return 'Venue / Location is required.';
-    if (!form.contactEmail.trim())        return 'Contact Email is required.';
-    if (parseInt(form.maxParticipants) < 1) return 'Max Participants must be at least 1.';
+    const errs = {};
 
-    // Pricing validation
-    if (form.is_paid) {
-      const amount = parseFloat(form.price);
-      if (!form.price || isNaN(amount) || amount <= 0) {
-        setPriceError('Please enter a valid event amount.');
-        return 'Please enter a valid event amount.';
+    if (!form.title.trim())
+      errs.title = 'Event Title is required.';
+
+    if (!form.category)
+      errs.category = 'Please select a category.';
+
+    if (!form.description.trim())
+      errs.description = 'Description is required.';
+
+    if (!form.startDatetime) {
+      errs.startDatetime = 'Start Date & Time is required.';
+    } else {
+      const startDate = new Date(form.startDatetime);
+      if (startDate <= new Date()) {
+        errs.startDatetime = 'Event start date and time cannot be in the past.';
       }
     }
 
-    return null;
+    if (!form.endDatetime) {
+      errs.endDatetime = 'End Date & Time is required.';
+    } else if (form.startDatetime && new Date(form.endDatetime) <= new Date(form.startDatetime)) {
+      errs.endDatetime = 'End date & time must be after start date & time.';
+    }
+
+    if (!form.registrationDeadline) {
+      errs.registrationDeadline = 'Registration Deadline is required.';
+    } else if (form.startDatetime && new Date(form.registrationDeadline) >= new Date(form.startDatetime)) {
+      errs.registrationDeadline = 'Registration deadline must be before the event start date & time.';
+    }
+
+    if (!form.venue.trim())
+      errs.venue = 'Venue / Location is required.';
+
+    if (!form.contactEmail.trim()) {
+      errs.contactEmail = 'Contact Email is required.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.contactEmail.trim())) {
+      errs.contactEmail = 'Please enter a valid email address.';
+    }
+
+    if (form.contactPhone) {
+      if (!/^\d{10}$/.test(form.contactPhone)) {
+        errs.contactPhone = 'Contact phone must be exactly 10 digits (numbers only).';
+      }
+    }
+
+    const participants = parseInt(form.maxParticipants, 10);
+    if (isNaN(participants) || participants < 1)
+      errs.maxParticipants = 'Max Participants must be at least 1.';
+
+    if (form.is_paid) {
+      const amount = parseFloat(form.price);
+      if (!form.price || isNaN(amount) || amount <= 0) {
+        errs.price = 'Please enter a valid positive event amount.';
+      }
+    }
+
+    return errs;
   };
 
   const handleSaveDraft = async () => {
     if (!form.title.trim()) {
-      alert('Event Title is required to save a draft.');
+      setErrors({ title: 'Event Title is required to save a draft.' });
       return;
     }
     setSavingDraft(true);
@@ -448,19 +565,42 @@ export default function CreateEvent() {
   };
 
   const handlePublish = async () => {
-    const validationError = validate();
-    if (validationError) {
-      alert(validationError);
+    const fieldErrors = validate();
+    if (Object.keys(fieldErrors).length > 0) {
+      setErrors(fieldErrors);
+      // Scroll to first error
+      const firstField = document.querySelector('.ce-input[style*="border-color: rgb(239, 68, 68)"], .ce-select[style*="border-color: rgb(239, 68, 68)"]');
+      if (firstField) firstField.scrollIntoView({ behavior: 'smooth', block: 'center' });
       return;
     }
+    setErrors({});
     setSubmitting(true);
     try {
       await createEvent({ ...form, status: 'PENDING' }, bannerFile);
       alert('Event submitted successfully! It is now pending administrator review.');
       navigate('/organizer/events/pending');
     } catch (e) {
-      const msg = e?.response?.data ? JSON.stringify(e.response.data) : e.message;
-      alert('Error creating event: ' + msg);
+      // Surface backend validation errors inline
+      if (e?.response?.data) {
+        const backendErrors = {};
+        const data = e.response.data;
+        if (data.title)               backendErrors.title = Array.isArray(data.title) ? data.title[0] : data.title;
+        if (data.venue)               backendErrors.venue = Array.isArray(data.venue) ? data.venue[0] : data.venue;
+        if (data.contact_phone)       backendErrors.contactPhone = Array.isArray(data.contact_phone) ? data.contact_phone[0] : data.contact_phone;
+        if (data.start_datetime)      backendErrors.startDatetime = Array.isArray(data.start_datetime) ? data.start_datetime[0] : data.start_datetime;
+        if (data.end_datetime)        backendErrors.endDatetime = Array.isArray(data.end_datetime) ? data.end_datetime[0] : data.end_datetime;
+        if (data.registration_deadline) backendErrors.registrationDeadline = Array.isArray(data.registration_deadline) ? data.registration_deadline[0] : data.registration_deadline;
+        if (data.price)               backendErrors.price = Array.isArray(data.price) ? data.price[0] : data.price;
+        if (data.max_participants)    backendErrors.maxParticipants = Array.isArray(data.max_participants) ? data.max_participants[0] : data.max_participants;
+        if (data.contact_email)       backendErrors.contactEmail = Array.isArray(data.contact_email) ? data.contact_email[0] : data.contact_email;
+        if (Object.keys(backendErrors).length > 0) {
+          setErrors(backendErrors);
+          return;
+        }
+        alert('Error creating event: ' + JSON.stringify(data));
+      } else {
+        alert('Error creating event: ' + e.message);
+      }
     } finally {
       setSubmitting(false);
     }
@@ -489,7 +629,8 @@ export default function CreateEvent() {
             form={form}
             onChange={updateField}
             onBannerFile={handleBannerFile}
-            priceError={priceError}
+            errors={errors}
+            setErrors={setErrors}
           />
         </div>
       </PageContainer>

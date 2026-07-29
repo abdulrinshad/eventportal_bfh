@@ -427,4 +427,36 @@ export const deleteNotificationApi = async (id) => {
 };
 
 
+/* ==========================================
+   STRIPE PAYMENTS
+   ========================================== */
+
+/**
+ * POST /api/student/events/:eventId/register/
+ * For paid events the backend returns { checkout_url } instead of a registration.
+ * For free events it returns { registration_id, status } as before.
+ * This reuses the existing registerForEventApi — no duplicate endpoint.
+ */
+export const createStripeCheckoutApi = async (eventId) => {
+  const response = await api.post(`/student/events/${eventId}/register/`);
+  return response.data; // { success, checkout_url } OR { success, data: { registration_id, status } }
+};
+
+
+/* ==========================================
+   ORGANIZER — ANALYTICS
+   ========================================== */
+
+/**
+ * GET /api/organizer/analytics/
+ * Returns real analytics for the logged-in organizer:
+ *   { total_revenue, total_registrations, registration_velocity, conversion_rate }
+ */
+export const getOrganizerAnalyticsApi = async () => {
+  const response = await api.get('/organizer/analytics/');
+  return response.data; // { success, data: { total_revenue, total_registrations, ... } }
+};
+
+
 export default api;
+

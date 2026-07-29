@@ -241,11 +241,14 @@ class ParticipantListSerializer(serializers.ModelSerializer):
             "registration_date",
             "attendance_status",
             "payment_status",
+            "paid_amount",
+            "status",
         ]
         read_only_fields = fields
 
     def get_participant_name(self, obj):
         return obj.participant.get_full_name() or obj.participant.email
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
