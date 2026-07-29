@@ -96,3 +96,149 @@ class NotificationDeleteView(APIView):
             {"success": True, "message": "Notification deleted."},
             status=status.HTTP_200_OK,
         )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Student-Specific Notification API Views
+# ─────────────────────────────────────────────────────────────────────────────
+
+from .services import generate_event_reminders_for_user
+from .serializers import StudentNotificationSerializer
+
+
+class StudentNotificationListView(APIView):
+    """
+    GET /api/student/notifications/
+
+    Returns all notifications for the authenticated student, newest first.
+    Uses select_related('event') to avoid N+1 queries.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        # Generate any due reminders for this student
+        generate_event_reminders_for_user(request.user)
+
+        notifications = (
+            Notification.objects
+            .filter(user=request.user)
+            .select_related("event")
+            .order_by("-created_at")
+        )
+
+        serializer = StudentNotificationSerializer(notifications, many=True)
+        return Response(
+            {
+                "success": True,
+                "message": "Notifications fetched successfully.",
+                "data": serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class StudentNotificationUnreadCountView(APIView):
+    """
+    GET /api/student/notifications/unread-count/
+
+    Returns count of unread notifications for the authenticated student.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request, *args, **kwargs):
+        # Generate any due reminders before counting
+        generate_event_reminders_for_user(request.user)
+
+        count = Notification.objects.filter(user=request.user, is_read=False).count()
+        return Response(
+            {
+                "success": True,
+                "count": count,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class StudentNotificationMarkReadView(APIView):
+    """
+    PATCH /api/student/notifications/<uuid:pk>/read/
+
+    Marks a single notification belonging to the student as read.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, pk, *args, **kwargs):
+        try:
+            notification = Notification.objects.get(pk=pk, user=request.user)
+        except Notification.DoesNotExist:
+            return Response(
+                {"success": False, "message": "Notification not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        notification.is_read = True
+        notification.save(update_fields=["is_read"])
+
+        return Response(
+            {
+                "success": True,
+                "message": "Notification marked as read.",
+                "data": {
+                    "id": str(notification.id),
+                    "is_read": notification.is_read,
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class StudentNotificationMarkAllReadView(APIView):
+    """
+    PATCH /api/student/notifications/mark-all-read/
+
+    Marks all unread notifications of the logged-in student as read.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def patch(self, request, *args, **kwargs):
+        updated_count = (
+            Notification.objects
+            .filter(user=request.user, is_read=False)
+            .update(is_read=True)
+        )
+
+        return Response(
+            {
+                "success": True,
+                "message": "All notifications marked as read.",
+                "count": updated_count,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class StudentNotificationDeleteView(APIView):
+    """
+    DELETE /api/student/notifications/<uuid:pk>/
+
+    Deletes a single notification belonging to the logged-in student.
+    """
+    permission_classes = [IsAuthenticated]
+
+    def delete(self, request, pk, *args, **kwargs):
+        try:
+            notification = Notification.objects.get(pk=pk, user=request.user)
+        except Notification.DoesNotExist:
+            return Response(
+                {"success": False, "message": "Notification not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        notification.delete()
+        return Response(
+            {
+                "success": True,
+                "message": "Notification deleted successfully.",
+            },
+            status=status.HTTP_200_OK,
+        )
