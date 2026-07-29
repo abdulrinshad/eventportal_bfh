@@ -1,0 +1,466 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Browse Events | CompilVision</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts -->
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@600;700;900&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Shared Style Guidance Mapping -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "error": "#ba1a1a",
+                    "on-secondary-fixed": "#121c2a",
+                    "tertiary-container": "#40d96f",
+                    "error-container": "#ffdad6",
+                    "on-tertiary": "#ffffff",
+                    "on-surface": "#151c27",
+                    "on-background": "#151c27",
+                    "surface-tint": "#7a5900",
+                    "on-surface-variant": "#504533",
+                    "on-error": "#ffffff",
+                    "inverse-on-surface": "#ebf1ff",
+                    "surface-bright": "#f9f9ff",
+                    "inverse-surface": "#2a313d",
+                    "on-secondary-container": "#596373",
+                    "inverse-primary": "#fdbc13",
+                    "on-tertiary-fixed": "#002109",
+                    "surface-container-highest": "#dce2f3",
+                    "surface-variant": "#dce2f3",
+                    "on-tertiary-fixed-variant": "#005321",
+                    "secondary-container": "#d6e0f3",
+                    "on-primary-fixed": "#261900",
+                    "on-secondary": "#ffffff",
+                    "secondary-fixed": "#d9e3f6",
+                    "background": "#f9f9ff",
+                    "surface": "#f9f9ff",
+                    "surface-container-low": "#f0f3ff",
+                    "on-primary": "#ffffff",
+                    "surface-container": "#e7eefe",
+                    "on-tertiary-container": "#005a25",
+                    "surface-container-high": "#e2e8f8",
+                    "primary": "#7a5900",
+                    "on-primary-container": "#654800",
+                    "surface-dim": "#d3daea",
+                    "tertiary": "#006e2f",
+                    "on-error-container": "#93000a",
+                    "on-primary-fixed-variant": "#5d4200",
+                    "secondary": "#555f6f",
+                    "tertiary-fixed-dim": "#4ae176",
+                    "primary-container": "#f4b400",
+                    "surface-container-lowest": "#ffffff",
+                    "secondary-fixed-dim": "#bdc7d9",
+                    "primary-fixed": "#ffdea3",
+                    "outline": "#827560",
+                    "primary-fixed-dim": "#fdbc13",
+                    "tertiary-fixed": "#6bff8f",
+                    "outline-variant": "#d4c4ac",
+                    "on-secondary-fixed-variant": "#3d4756"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "md": "16px",
+                    "base": "8px",
+                    "xl": "32px",
+                    "xs": "4px",
+                    "container-margin": "24px",
+                    "gutter": "16px",
+                    "xxl": "48px",
+                    "lg": "24px",
+                    "sm": "8px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Poppins"],
+                    "display-lg": ["Poppins"],
+                    "headline-sm": ["Poppins"],
+                    "body-lg": ["Inter"],
+                    "headline-md": ["Poppins"],
+                    "body-md": ["Inter"],
+                    "body-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "label-sm": ["Inter"],
+                    "headline-lg": ["Poppins"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["24px", {"lineHeight": "1.3", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "1.2", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-sm": ["20px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "body-lg": ["18px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "headline-md": ["24px", {"lineHeight": "1.4", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "1.6", "fontWeight": "400"}],
+                    "body-sm": ["14px", {"lineHeight": "1.5", "fontWeight": "400"}],
+                    "label-md": ["14px", {"lineHeight": "1", "letterSpacing": "0.01em", "fontWeight": "600"}],
+                    "label-sm": ["12px", {"lineHeight": "1", "fontWeight": "500"}],
+                    "headline-lg": ["32px", {"lineHeight": "1.3", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #FFFDF7;
+            font-family: 'Inter', sans-serif;
+            color: #1F2937;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .soft-shadow {
+            box-shadow: 0 4px 20px rgba(31, 41, 55, 0.04);
+        }
+        .premium-card:hover {
+            box-shadow: 0 10px 30px rgba(31, 41, 55, 0.08);
+            transform: translateY(-2px);
+            transition: all 0.3s ease;
+        }
+        .active-dot::after {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            background-color: #F4B400;
+            border-radius: 50%;
+            margin-left: 6px;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background">
+<!-- TopNavBar Component -->
+<nav class="sticky top-0 z-50 flex justify-between items-center w-full px-container-margin py-4 max-w-7xl mx-auto bg-surface/80 backdrop-blur-xl border-b border-outline-variant/30 shadow-sm">
+<div class="flex items-center gap-8">
+<span class="text-headline-md font-headline-md font-bold text-on-surface">CompilVision</span>
+<div class="hidden md:flex items-center gap-6">
+<a class="text-secondary font-medium hover:text-primary transition-colors font-label-md text-label-md" href="#">Home</a>
+<a class="text-primary font-bold border-b-2 border-primary transition-colors font-label-md text-label-md" href="#">Events</a>
+<a class="text-secondary font-medium hover:text-primary transition-colors font-label-md text-label-md" href="#">About</a>
+<a class="text-secondary font-medium hover:text-primary transition-colors font-label-md text-label-md" href="#">Contact</a>
+</div>
+</div>
+<div class="flex items-center gap-4">
+<button class="text-secondary font-medium font-label-md text-label-md px-4 py-2">Login</button>
+<button class="bg-primary-container text-on-primary-container font-bold px-6 py-2.5 rounded-xl scale-95 active:scale-90 transition-transform duration-200 shadow-sm">Register</button>
+</div>
+</nav>
+<main class="max-w-7xl mx-auto px-container-margin py-xl">
+<!-- Header Section -->
+<header class="mb-xl flex flex-col md:flex-row md:items-end justify-between gap-4">
+<div>
+<h1 class="font-headline-lg text-headline-lg text-on-surface">Browse Events</h1>
+<p class="font-body-md text-body-md text-secondary mt-2">Discover and manage 124 upcoming events across the globe.</p>
+</div>
+<div class="flex items-center gap-2 bg-surface-container-low px-4 py-2 rounded-full border border-outline-variant/20">
+<span class="material-symbols-outlined text-primary" style="font-size: 20px;">search</span>
+<input class="bg-transparent border-none focus:ring-0 text-label-md w-48 lg:w-64" placeholder="Search events..." type="text"/>
+</div>
+</header>
+<div class="flex flex-col lg:flex-row gap-lg">
+<!-- Filter Sidebar -->
+<aside class="w-full lg:w-[280px] space-y-xl">
+<!-- Categories -->
+<section class="bg-surface-container-lowest p-lg rounded-xl soft-shadow border border-outline-variant/20">
+<h3 class="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-md">Categories</h3>
+<div class="space-y-3">
+<label class="flex items-center gap-3 cursor-pointer group">
+<input checked="" class="rounded-lg text-primary focus:ring-primary h-5 w-5 border-outline-variant/50" type="checkbox"/>
+<span class="font-body-sm text-body-sm text-secondary group-hover:text-primary">All Events</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="rounded-lg text-primary focus:ring-primary h-5 w-5 border-outline-variant/50" type="checkbox"/>
+<span class="font-body-sm text-body-sm text-secondary group-hover:text-primary">Conferences</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="rounded-lg text-primary focus:ring-primary h-5 w-5 border-outline-variant/50" type="checkbox"/>
+<span class="font-body-sm text-body-sm text-secondary group-hover:text-primary">Workshops</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="rounded-lg text-primary focus:ring-primary h-5 w-5 border-outline-variant/50" type="checkbox"/>
+<span class="font-body-sm text-body-sm text-secondary group-hover:text-primary">Networking</span>
+</label>
+<label class="flex items-center gap-3 cursor-pointer group">
+<input class="rounded-lg text-primary focus:ring-primary h-5 w-5 border-outline-variant/50" type="checkbox"/>
+<span class="font-body-sm text-body-sm text-secondary group-hover:text-primary">Tech Summits</span>
+</label>
+</div>
+</section>
+<!-- Date Range -->
+<section class="bg-surface-container-lowest p-lg rounded-xl soft-shadow border border-outline-variant/20">
+<h3 class="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-md">Date Range</h3>
+<div class="space-y-4">
+<div>
+<label class="font-label-sm text-label-sm text-on-surface-variant mb-1 block">From</label>
+<input class="w-full bg-surface-container-low border-outline-variant/30 rounded-xl px-3 py-2 text-body-sm focus:ring-primary focus:border-primary" type="date"/>
+</div>
+<div>
+<label class="font-label-sm text-label-sm text-on-surface-variant mb-1 block">To</label>
+<input class="w-full bg-surface-container-low border-outline-variant/30 rounded-xl px-3 py-2 text-body-sm focus:ring-primary focus:border-primary" type="date"/>
+</div>
+</div>
+</section>
+<!-- Price Range -->
+<section class="bg-surface-container-lowest p-lg rounded-xl soft-shadow border border-outline-variant/20">
+<h3 class="font-label-md text-label-md text-on-surface uppercase tracking-wider mb-md">Price Type</h3>
+<div class="flex flex-col gap-3">
+<label class="flex items-center justify-between cursor-pointer group">
+<span class="font-body-sm text-body-sm text-secondary">Free Events</span>
+<div class="relative inline-flex items-center cursor-pointer">
+<input class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-outline-variant/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</div>
+</label>
+<label class="flex items-center justify-between cursor-pointer group">
+<span class="font-body-sm text-body-sm text-secondary">Paid Events</span>
+<div class="relative inline-flex items-center cursor-pointer">
+<input checked="" class="sr-only peer" type="checkbox" value=""/>
+<div class="w-11 h-6 bg-outline-variant/30 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-primary"></div>
+</div>
+</label>
+</div>
+</section>
+<button class="w-full bg-secondary text-white font-bold py-3 rounded-xl hover:bg-on-secondary-fixed transition-colors active:scale-95 duration-200">
+                    Apply Filters
+                </button>
+</aside>
+<!-- Main Grid -->
+<div class="flex-1">
+<div class="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-lg">
+<!-- Event Card 1 -->
+<article class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 soft-shadow premium-card flex flex-col overflow-hidden">
+<div class="aspect-video w-full relative">
+<div class="bg-cover bg-center w-full h-full" data-alt="A cinematic, high-resolution shot of a modern tech conference hall with blue and gold ambient lighting. Professional speakers stand on a sleek minimalist stage with large holographic screens. The atmosphere is energetic, premium, and sophisticated, perfectly matching the CompilVision brand identity." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDakwRMAiXLm1dkyVPZFwVXu1qYHrq3afJvjBMszCcCoHwB6Yat1Okc_GNwUXCTQ1f8Rfdvbjp-cbPT3Mj1HJvhCBQk33hm6xT61mt2UW_cbSEXYstgzOQVANKppOJH0rKJz_Hk1-ik1vzwQWmzgekyVWGOZoEtLkiXBtY7jUxvX2fY9srM9yG9AgGRkgeymrtNLamTq21aojUAA4fzdoNNV1Q_JOWyFxQuqr9rCYQ0OOl0Rp_DrsTaDvYbc_pPRgRORQH8oj-oNTc')"></div>
+<span class="absolute top-4 left-4 bg-tertiary-container text-on-tertiary-container font-label-sm text-label-sm px-3 py-1.5 rounded-lg shadow-sm">Conference</span>
+</div>
+<div class="p-md flex flex-col flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">Global AI Summit 2024</h3>
+<div class="space-y-2 mb-lg">
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">calendar_today</span>
+<span>Oct 12 - 14, 2024</span>
+</div>
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">location_on</span>
+<span>Innovation Center, San Francisco</span>
+</div>
+</div>
+<div class="mt-auto flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-primary">$299.00</span>
+<button class="bg-primary-container text-on-primary-container font-bold px-4 py-2 rounded-xl text-label-md hover:shadow-md transition-all active:scale-95">View Details</button>
+</div>
+</div>
+</article>
+<!-- Event Card 2 -->
+<article class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 soft-shadow premium-card flex flex-col overflow-hidden">
+<div class="aspect-video w-full relative">
+<div class="bg-cover bg-center w-full h-full" data-alt="A close-up photograph of a professional workshop setting. Attendees are working on laptops in a bright, sun-drenched industrial loft space with high ceilings. The color palette features clean whites, warm wood textures, and vibrant yellow accents. Soft diffused lighting creates a focused and collaborative mood." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCYkF2in2wxQvONaIG3x60aQFAQJIiNlnhRyjJrlYvMswZ3VPEVkXlI0WLYBcu3q_xP86pBhopznDMh0cnF0I94i4M9EmAtC5zEf3sGct6y3-2raaIf-i6ILLXnZUds3A2hg1oz9yYVpH2R1TBqSFS5uQOdEBFnnwdhbzITNKUxmY840wtb9HwmswoPZy32yOa_u2nFrUnKgCCm-JCT9hYG_MmMYmwkTkXKQIOS0Cxp-YDTXq6c9XX34u8dKZi0sSLkMUPTDnqFGlI')"></div>
+<span class="absolute top-4 left-4 bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-3 py-1.5 rounded-lg shadow-sm">Workshop</span>
+</div>
+<div class="p-md flex flex-col flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">Design Systems Masterclass</h3>
+<div class="space-y-2 mb-lg">
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">calendar_today</span>
+<span>Nov 05, 2024</span>
+</div>
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">location_on</span>
+<span>CompilVision Creative Lab, Remote</span>
+</div>
+</div>
+<div class="mt-auto flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-primary">$149.00</span>
+<button class="bg-primary-container text-on-primary-container font-bold px-4 py-2 rounded-xl text-label-md hover:shadow-md transition-all active:scale-95">View Details</button>
+</div>
+</div>
+</article>
+<!-- Event Card 3 -->
+<article class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 soft-shadow premium-card flex flex-col overflow-hidden">
+<div class="aspect-video w-full relative">
+<div class="bg-cover bg-center w-full h-full" data-alt="A stylish evening networking event on a rooftop lounge at dusk. The city skyline is visible in the background with a soft purple and gold sunset. Well-dressed professionals are engaged in conversation with cocktails. Minimalist designer furniture and warm string lights create a premium, energetic, and exclusive social atmosphere." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuACXz-riYMfhsRtQCn3zk4QpxKrwYLQk4XfiALAZ64fzPPl0xU8foDZBnJtma1Djdw942CLlzfz4d-ozN6RpIcVgpOcKodjcwiHnIV8U8ttCX4CnuwSrofoct9dxfCfEmNZonJ1JUVUJ2eyXsda0hekJkZLEQIh5oXsrowIxBtG6273JssN1ZJCRDQLgvBj-oQ5Y4BbhLObqXs-3n2D5e6SOyd8Ytmjtgl6SD84qPPxuxsB7ComoUwOReleQECAJu19ZNzel_SubLc')"></div>
+<span class="absolute top-4 left-4 bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm px-3 py-1.5 rounded-lg shadow-sm">Networking</span>
+</div>
+<div class="p-md flex flex-col flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">Founders &amp; Funders Night</h3>
+<div class="space-y-2 mb-lg">
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">calendar_today</span>
+<span>Oct 20, 2024</span>
+</div>
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">location_on</span>
+<span>The Sky Lounge, New York City</span>
+</div>
+</div>
+<div class="mt-auto flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-tertiary">Free</span>
+<button class="bg-primary-container text-on-primary-container font-bold px-4 py-2 rounded-xl text-label-md hover:shadow-md transition-all active:scale-95">View Details</button>
+</div>
+</div>
+</article>
+<!-- Event Card 4 -->
+<article class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 soft-shadow premium-card flex flex-col overflow-hidden">
+<div class="aspect-video w-full relative">
+<div class="bg-cover bg-center w-full h-full" data-alt="An expansive view of a large-scale international technology expo. Rows of futuristic booths feature interactive displays and large-scale digital art. High-key white lighting and wide corridors convey a sense of scale and precision. The aesthetic is clean, professional, and world-class, highlighting high-stakes event coordination." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDQ0Bb5Jv6xwvG5uSFkVtAU466-PDH_bApKNk5asfQr3__cFcWioKVBJ7kzFnnWZ9LwdGbrp9CCEeT0lnTRlHXITBg3qYVRvTpimjozBKUkFmpO-ZW30_IUvNxPbZhD2NmT3Axy5niZmvz1bTM6xPSXJY_Urr4foinzpn-qUxt8wadI293YtSEm6iNfzG9lbg9o6H56h1xEF-zFijkOZ6N2-g1LhVZZuu_JcPuJnGhl9I6eY9yyuzHnDBfEDnEUI-VM3kY7qztD7jA')"></div>
+<span class="absolute top-4 left-4 bg-tertiary-container text-on-tertiary-container font-label-sm text-label-sm px-3 py-1.5 rounded-lg shadow-sm">Tech Summit</span>
+</div>
+<div class="p-md flex flex-col flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">SaaS Connect 2024</h3>
+<div class="space-y-2 mb-lg">
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">calendar_today</span>
+<span>Dec 02 - 04, 2024</span>
+</div>
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">location_on</span>
+<span>Grand Expo Hall, Berlin</span>
+</div>
+</div>
+<div class="mt-auto flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-primary">$350.00</span>
+<button class="bg-primary-container text-on-primary-container font-bold px-4 py-2 rounded-xl text-label-md hover:shadow-md transition-all active:scale-95">View Details</button>
+</div>
+</div>
+</article>
+<!-- Event Card 5 -->
+<article class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 soft-shadow premium-card flex flex-col overflow-hidden">
+<div class="aspect-video w-full relative">
+<div class="bg-cover bg-center w-full h-full" data-alt="An intimate focus group or deep-dive seminar setting. A round table of diverse professionals in a high-tech boardroom with glass walls overlooking a modern city. Soft morning light and minimal desk accessories. The mood is calm, organized, and meticulously crafted for precision learning and discussion." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuC3ioj_tqevKyN4rWf9MvYUH694OgRACtmQLdLVFHocxebUpACpDtOUCz2yFTDPTmAz8UHV-R4HAtgRCZmSFsGx6PKjMcpbJECz0hxUAth7NBm3rMtnWrT8Mf2-7uiZgBG_fPbHrIUPejLE_A3ngeuGY7cVt2KxzQOxlTHT4Pk5bUgg0VLMjuHzDxHKAvB8Fskj9HcGkGyWuqWqJNBhzbieG0Gas5CULXutJ4ZBzBLLyKoERaEcakxjG_HCYOO76HUqFao4k6gns5A')"></div>
+<span class="absolute top-4 left-4 bg-secondary-container text-on-secondary-container font-label-sm text-label-sm px-3 py-1.5 rounded-lg shadow-sm">Seminar</span>
+</div>
+<div class="p-md flex flex-col flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">Future of Fintech</h3>
+<div class="space-y-2 mb-lg">
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">calendar_today</span>
+<span>Nov 18, 2024</span>
+</div>
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">location_on</span>
+<span>London Financial District</span>
+</div>
+</div>
+<div class="mt-auto flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-primary">$89.00</span>
+<button class="bg-primary-container text-on-primary-container font-bold px-4 py-2 rounded-xl text-label-md hover:shadow-md transition-all active:scale-95">View Details</button>
+</div>
+</div>
+</article>
+<!-- Event Card 6 -->
+<article class="bg-surface-container-lowest rounded-xl border border-outline-variant/20 soft-shadow premium-card flex flex-col overflow-hidden">
+<div class="aspect-video w-full relative">
+<div class="bg-cover bg-center w-full h-full" data-alt="A modern developer hackathon environment with glowing neon accents in a dark-mode but professionally lit workspace. Teams are huddled around large monitors displaying code. Vibrant green and gold accents are scattered throughout. The mood is high-energy, technological, and focused on creative problem-solving." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDZ3UVIGcUDbLj9rxuPYhm4vg3K0Vz1uKiiuYzy3GhIeLlUotk3xfxiN2sBoVRKzuqnqHzDHVIl4xblS4GUk-MtU4B7A-e0RrORmaNOkyS4w0iWCv1C9d0ydSbAwcH61qRDxK1iDdHocif2NjSjSsX2HTTh7Z3VXtj9GnwJzw2jwoOkv_9iek6Ug9QI4m9UwNiaLzT8oYhYVQQlFeklwaMBz69M-PxGjuC5k2TcRiq1MLc-T3KmwyfihFdWnhFhbqis3ur5T3ylkOI')"></div>
+<span class="absolute top-4 left-4 bg-tertiary-fixed text-on-tertiary-fixed font-label-sm text-label-sm px-3 py-1.5 rounded-lg shadow-sm">Hackathon</span>
+</div>
+<div class="p-md flex flex-col flex-1">
+<h3 class="font-headline-sm text-headline-sm text-on-surface mb-2">Hack the Vision 2024</h3>
+<div class="space-y-2 mb-lg">
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">calendar_today</span>
+<span>Jan 15 - 17, 2025</span>
+</div>
+<div class="flex items-center gap-2 text-secondary font-body-sm text-body-sm">
+<span class="material-symbols-outlined text-primary" style="font-size: 18px;">location_on</span>
+<span>Virtual Event</span>
+</div>
+</div>
+<div class="mt-auto flex items-center justify-between">
+<span class="font-headline-sm text-headline-sm text-tertiary">Free</span>
+<button class="bg-primary-container text-on-primary-container font-bold px-4 py-2 rounded-xl text-label-md hover:shadow-md transition-all active:scale-95">View Details</button>
+</div>
+</div>
+</article>
+</div>
+<!-- Pagination -->
+<div class="mt-xxl flex justify-center items-center gap-2">
+<button class="w-10 h-10 flex items-center justify-center rounded-xl border border-outline-variant/30 text-secondary hover:bg-surface-container transition-all active:scale-90">
+<span class="material-symbols-outlined">chevron_left</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl bg-primary text-on-primary font-bold shadow-sm">1</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl border border-outline-variant/30 text-secondary hover:bg-surface-container transition-all">2</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl border border-outline-variant/30 text-secondary hover:bg-surface-container transition-all">3</button>
+<span class="text-secondary mx-1">...</span>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl border border-outline-variant/30 text-secondary hover:bg-surface-container transition-all">12</button>
+<button class="w-10 h-10 flex items-center justify-center rounded-xl border border-outline-variant/30 text-secondary hover:bg-surface-container transition-all active:scale-90">
+<span class="material-symbols-outlined">chevron_right</span>
+</button>
+</div>
+</div>
+</div>
+</main>
+<!-- Footer Component -->
+<footer class="w-full py-xl px-container-margin bg-surface-container-lowest border-t border-outline-variant/30 mt-xxl">
+<div class="max-w-7xl mx-auto grid grid-cols-1 md:grid-cols-4 gap-lg">
+<div class="space-y-4">
+<span class="font-headline-sm text-headline-sm font-bold text-on-surface">CompilVision</span>
+<p class="font-body-sm text-body-sm text-on-surface-variant max-w-xs">The premium choice for world-class event management and coordination. Precision in every detail.</p>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-primary mb-4 uppercase tracking-widest">Platform</h4>
+<ul class="space-y-3 font-body-sm text-body-sm">
+<li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">About Us</a></li>
+<li><a class="text-primary underline" href="#">Events</a></li>
+<li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Pricing</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-primary mb-4 uppercase tracking-widest">Support</h4>
+<ul class="space-y-3 font-body-sm text-body-sm">
+<li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Help Center</a></li>
+<li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Contact</a></li>
+<li><a class="text-on-surface-variant hover:text-primary transition-colors" href="#">Privacy Policy</a></li>
+</ul>
+</div>
+<div>
+<h4 class="font-label-md text-label-md text-primary mb-4 uppercase tracking-widest">Follow Us</h4>
+<div class="flex gap-4">
+<a class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center hover:bg-primary transition-all group" href="#">
+<span class="material-symbols-outlined text-secondary group-hover:text-on-primary">hub</span>
+</a>
+<a class="w-10 h-10 rounded-full bg-surface-container-high flex items-center justify-center hover:bg-primary transition-all group" href="#">
+<span class="material-symbols-outlined text-secondary group-hover:text-on-primary">public</span>
+</a>
+</div>
+</div>
+</div>
+<div class="max-w-7xl mx-auto mt-xl pt-lg border-t border-outline-variant/20 flex flex-col md:flex-row justify-between items-center gap-4">
+<span class="font-label-sm text-label-sm text-on-surface-variant">© 2024 CompilVision. All rights reserved.</span>
+<div class="flex gap-6 font-label-sm text-label-sm">
+<a class="text-on-surface-variant hover:text-primary" href="#">Terms of Service</a>
+<a class="text-on-surface-variant hover:text-primary" href="#">Privacy Policy</a>
+<a class="text-on-surface-variant hover:text-primary" href="#">Cookies</a>
+</div>
+</div>
+</footer>
+<script>
+        // Micro-interactions for buttons
+        document.querySelectorAll('button').forEach(button => {
+            button.addEventListener('mouseenter', () => {
+                button.classList.add('transition-all', 'duration-200');
+            });
+        });
+        
+        // Simple search feedback
+        const searchInput = document.querySelector('input[type="text"]');
+        if(searchInput) {
+            searchInput.addEventListener('focus', () => {
+                searchInput.parentElement.classList.add('ring-2', 'ring-primary/20', 'border-primary');
+            });
+            searchInput.addEventListener('blur', () => {
+                searchInput.parentElement.classList.remove('ring-2', 'ring-primary/20', 'border-primary');
+            });
+        }
+    </script>
+</body></html>
