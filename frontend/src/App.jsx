@@ -41,7 +41,6 @@ import OrganizerApplicationSuccess from './pages/student/OrganizerApplicationSuc
 // Organizer Pages
 import OrganizerDashboard from './pages/organizer/OrganizerDashboard';
 import OrganizerProfile from './pages/organizer/OrganizerProfile';
-import OrganizerSettings from './pages/organizer/OrganizerSettings';
 import OrganizerNotifications from './pages/organizer/OrganizerNotifications';
 import OrganizerHelpCenter from './pages/organizer/OrganizerHelpCenter';
 import CreateEventOrganizer from './pages/organizer/CreateEvent';
@@ -245,14 +244,6 @@ function App() {
               element={
                 <ProtectedRoute allowedRoles={['ORGANIZER']}>
                   <OrganizerNotifications />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/organizer/settings"
-              element={
-                <ProtectedRoute allowedRoles={['ORGANIZER']}>
-                  <OrganizerSettings />
                 </ProtectedRoute>
               }
             />

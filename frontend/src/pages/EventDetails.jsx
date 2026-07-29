@@ -518,6 +518,13 @@ const EventDetails = () => {
     try {
       const res = await registerForEventApi(event.id);
       if (res && res.success) {
+        // ── Paid event: backend returned a Stripe Checkout URL ──────────────
+        if (res.checkout_url) {
+          window.location.href = res.checkout_url;
+          return; // browser navigates away — no state update needed
+        }
+
+        // ── Free event: registration created immediately ─────────────────────
         const newStatus = res.data?.status;
         setRegMsg({
           type: 'success',
@@ -525,7 +532,7 @@ const EventDetails = () => {
             ? '✓ You have been added to the waitlist!'
             : '✓ Registration successful!',
         });
-        // Refresh event to update button state
+        // Refresh event to update button state, seat count, registered count
         const refreshed = await getStudentEventDetailApi(event.id);
         if (refreshed && refreshed.success) setEvent(refreshed.data);
       } else {
@@ -538,6 +545,7 @@ const EventDetails = () => {
       setRegistering(false);
     }
   };
+
 
   if (loading) return <AppLayout><LoadingSkeleton /></AppLayout>;
 

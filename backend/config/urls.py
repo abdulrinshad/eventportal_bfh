@@ -30,9 +30,11 @@ urlpatterns = [
     path('api/', include('organizers.urls')),
     path('api/', include('student.urls')),
     path('api/', include('notifications.urls')),
+    path('api/', include('registrations.urls')),
     path('api/token/', TokenObtainPairView.as_view(), name='token_obtain_pair'),
     path('api/token/refresh/', TokenRefreshView.as_view(), name='token_refresh'),
 ]
+
 
 # Serve media files during development
 if settings.DEBUG:

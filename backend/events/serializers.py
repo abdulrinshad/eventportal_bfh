@@ -1,4 +1,5 @@
 import json
+import re
 
 from rest_framework import serializers
 
@@ -140,9 +141,41 @@ class EventDetailSerializer(serializers.ModelSerializer):
 
     # ── Field-level validation ────────────────────────────────────────────────
 
+    def validate_title(self, value):
+        """Title cannot be blank or contain only whitespace."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Event title cannot be blank or contain only spaces.")
+        return value.strip()
+
+    def validate_venue(self, value):
+        """Venue cannot be blank or contain only whitespace."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Venue cannot be blank or contain only spaces.")
+        return value.strip()
+
+    def validate_contact_phone(self, value):
+        """Contact phone must be exactly 10 numeric digits."""
+        if value:  # optional field, only validate when provided
+            cleaned = value.strip()
+            if not re.fullmatch(r'\d{10}', cleaned):
+                raise serializers.ValidationError(
+                    "Contact phone must be exactly 10 digits (numbers only, no spaces or symbols)."
+                )
+            return cleaned
+        return value
+
     def validate_max_participants(self, value):
         if value < 1:
             raise serializers.ValidationError("Max participants must be greater than 0.")
+        return value
+
+    def validate_start_datetime(self, value):
+        """Start date cannot be in the past."""
+        from django.utils import timezone
+        if value and value < timezone.now():
+            raise serializers.ValidationError(
+                "Event start date and time cannot be in the past."
+            )
         return value
 
     def validate_ticket_price(self, value):
@@ -262,6 +295,38 @@ class EventCreateSerializer(serializers.ModelSerializer):
             return request.build_absolute_uri(obj.banner.url)
         return obj.banner.url
 
+    def validate_title(self, value):
+        """Title cannot be blank or contain only whitespace."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Event title cannot be blank or contain only spaces.")
+        return value.strip()
+
+    def validate_venue(self, value):
+        """Venue cannot be blank or contain only whitespace."""
+        if not value or not value.strip():
+            raise serializers.ValidationError("Venue cannot be blank or contain only spaces.")
+        return value.strip()
+
+    def validate_contact_phone(self, value):
+        """Contact phone must be exactly 10 numeric digits."""
+        if value:  # optional field, only validate when provided
+            cleaned = value.strip()
+            if not re.fullmatch(r'\d{10}', cleaned):
+                raise serializers.ValidationError(
+                    "Contact phone must be exactly 10 digits (numbers only, no spaces or symbols)."
+                )
+            return cleaned
+        return value
+
+    def validate_start_datetime(self, value):
+        """Start date cannot be in the past."""
+        from django.utils import timezone
+        if value and value < timezone.now():
+            raise serializers.ValidationError(
+                "Event start date and time cannot be in the past."
+            )
+        return value
+
     def validate_max_participants(self, value):
         if value < 1:
             raise serializers.ValidationError("Max participants must be greater than 0.")
@@ -277,6 +342,7 @@ class EventCreateSerializer(serializers.ModelSerializer):
 
     def validate_social_links(self, value):
         return _parse_json_field(value, dict)
+
 
     def validate(self, attrs):
         # ── Pricing cross-field validation ────────────────────────────────────────

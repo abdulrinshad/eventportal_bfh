@@ -92,6 +92,40 @@ class Registration(models.Model):
         help_text=_("Auto-generated QR code image for this registration ticket."),
     )
 
+    # ── Stripe payment fields ─────────────────────────────────────────────────
+    stripe_session_id = models.CharField(
+        _("Stripe session ID"),
+        max_length=255,
+        blank=True,
+        null=True,
+        db_index=True,
+    )
+    payment_intent = models.CharField(
+        _("Stripe payment intent ID"),
+        max_length=255,
+        blank=True,
+        null=True,
+    )
+    paid_amount = models.DecimalField(
+        _("amount paid"),
+        max_digits=10,
+        decimal_places=2,
+        null=True,
+        blank=True,
+    )
+    currency = models.CharField(
+        _("currency"),
+        max_length=10,
+        blank=True,
+        null=True,
+    )
+    paid_at = models.DateTimeField(
+        _("paid at"),
+        null=True,
+        blank=True,
+    )
+
+
     class Meta:
         verbose_name = _("registration")
         verbose_name_plural = _("registrations")

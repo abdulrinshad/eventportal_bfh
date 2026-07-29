@@ -1,4 +1,4 @@
-﻿from django_filters.rest_framework import DjangoFilterBackend
+from django_filters.rest_framework import DjangoFilterBackend
 from rest_framework import filters, generics, status
 from rest_framework.parsers import FormParser, MultiPartParser
 from rest_framework.response import Response
@@ -284,6 +284,7 @@ class BroadcastEmailView(APIView):
         )
         if serializer.is_valid():
             event = serializer.context["event"]
+
             subject = serializer.validated_data["subject"]
             message = serializer.validated_data["message"]
 
@@ -303,3 +304,98 @@ class BroadcastEmailView(APIView):
                 status=status.HTTP_200_OK,
             )
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Analytics
+# ─────────────────────────────────────────────────────────────────────────────
+
+class OrganizerAnalyticsView(APIView):
+    """
+    GET /api/organizer/analytics/
+
+    Returns real analytics data for the logged-in organizer:
+      - total_revenue      : sum of paid_amount for PAID registrations on organizer's events
+      - total_registrations: count of non-cancelled registrations
+      - registration_velocity: registrations grouped by day (last 30 days)
+      - conversion_rate    : placeholder (no page-view tracking implemented)
+    """
+    permission_classes = [IsOrganizerUser]
+
+    def get(self, request, *args, **kwargs):
+        from django.db.models import Sum, Count, Q
+        from django.db.models.functions import TruncDate
+        from django.utils import timezone
+        from events.models import Event
+        import datetime
+
+        user = request.user
+        base_qs = Registration.objects.filter(event__organizer=user)
+
+        # ── Total Revenue ─────────────────────────────────────────────────────
+        revenue_result = base_qs.filter(
+            payment_status=Registration.PaymentStatus.PAID,
+            paid_amount__isnull=False,
+        ).aggregate(total=Sum("paid_amount"))
+        total_revenue = float(revenue_result["total"] or 0)
+
+        # ── Total Registrations (non-cancelled) ───────────────────────────────
+        total_registrations = base_qs.exclude(
+            status=Registration.Status.CANCELLED
+        ).count()
+
+        # ── Registration Velocity (last 30 days, grouped by day) ──────────────
+        thirty_days_ago = timezone.now() - datetime.timedelta(days=30)
+        velocity_qs = (
+            base_qs.filter(registration_date__gte=thirty_days_ago)
+            .annotate(day=TruncDate("registration_date"))
+            .values("day")
+            .annotate(count=Count("id"))
+            .order_by("day")
+        )
+        registration_velocity = [
+            {"date": str(row["day"]), "count": row["count"]}
+            for row in velocity_qs
+        ]
+
+        # ── Top 5 Events by Registration Count ───────────────────────────────
+        top_events_qs = (
+            Event.objects.filter(organizer=user)
+            .annotate(
+                registration_count=Count(
+                    "registrations",
+                    filter=~Q(registrations__status=Registration.Status.CANCELLED),
+                ),
+                revenue=Sum(
+                    "registrations__paid_amount",
+                    filter=Q(registrations__payment_status=Registration.PaymentStatus.PAID),
+                ),
+            )
+            .order_by("-registration_count")[:5]
+        )
+        top_events = [
+            {
+                "event_id":           str(ev.id),
+                "title":              ev.title,
+                "registration_count": ev.registration_count,
+                "revenue":            float(ev.revenue or 0),
+            }
+            for ev in top_events_qs
+        ]
+
+        return Response(
+            {
+                "success": True,
+                "message": "Analytics retrieved successfully.",
+                "data": {
+                    "total_revenue":         total_revenue,
+                    "total_registrations":   total_registrations,
+                    "registration_velocity": registration_velocity,
+                    "top_events":            top_events,
+                    "conversion_rate":       None,  # No page-view tracking yet
+                },
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
