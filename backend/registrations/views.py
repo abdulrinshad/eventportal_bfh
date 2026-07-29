@@ -7,7 +7,10 @@ Endpoints:
   POST /api/payments/webhook/   — Stripe webhook (no JWT auth, verified by signature)
 """
 
-import stripe
+try:
+    import stripe
+except ImportError:
+    stripe = None
 from decimal import Decimal
 
 from django.conf import settings
