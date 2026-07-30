@@ -2,7 +2,7 @@ from django.contrib import admin
 from django.contrib.auth.admin import UserAdmin
 from django.utils.translation import gettext_lazy as _
 
-from .models import CustomUser
+from .models import CustomUser, SiteSettings, CompanyValue, Feature, TeamMember, Partner, ContactEnquiry
 from .forms import CustomUserCreationForm, CustomUserChangeForm
 
 
@@ -94,3 +94,40 @@ class CustomUserAdmin(UserAdmin):
     
     # Read-only fields
     readonly_fields = ("date_joined", "updated_at")
+
+
+@admin.register(SiteSettings)
+class SiteSettingsAdmin(admin.ModelAdmin):
+    list_display = ["company_name", "support_email", "support_phone"]
+
+
+@admin.register(CompanyValue)
+class CompanyValueAdmin(admin.ModelAdmin):
+    list_display = ["title", "icon", "order"]
+    list_editable = ["order"]
+
+
+@admin.register(Feature)
+class FeatureAdmin(admin.ModelAdmin):
+    list_display = ["title", "icon", "order"]
+    list_editable = ["order"]
+
+
+@admin.register(TeamMember)
+class TeamMemberAdmin(admin.ModelAdmin):
+    list_display = ["name", "position", "order"]
+    list_editable = ["order"]
+
+
+@admin.register(Partner)
+class PartnerAdmin(admin.ModelAdmin):
+    list_display = ["name", "order"]
+    list_editable = ["order"]
+
+
+@admin.register(ContactEnquiry)
+class ContactEnquiryAdmin(admin.ModelAdmin):
+    list_display = ["subject", "name", "email", "status", "created_at"]
+    list_filter = ["status", "created_at"]
+    search_fields = ["name", "email", "subject", "message"]
+

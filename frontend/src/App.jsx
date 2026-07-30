@@ -9,6 +9,7 @@ import {
 
 import { AuthProvider, AuthContext } from './context/AuthContext';
 import { EventProvider } from './context/EventContext';
+import { SiteSettingsProvider } from './context/SiteSettingsContext';
 import ProtectedRoute from './routes/ProtectedRoute';
 
 // Public Pages
@@ -77,9 +78,10 @@ function RegistrationSuccessWrapper() {
 function App() {
   return (
     <BrowserRouter>
-      <AuthProvider>
-        <EventProvider>
-          <Routes>
+      <SiteSettingsProvider>
+        <AuthProvider>
+          <EventProvider>
+            <Routes>
 
             {/* ---------- Public Routes ---------- */}
             <Route path="/" element={<Home />} />
@@ -281,6 +283,7 @@ function App() {
           </Routes>
         </EventProvider>
       </AuthProvider>
+      </SiteSettingsProvider>
     </BrowserRouter>
   );
 }

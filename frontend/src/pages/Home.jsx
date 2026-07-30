@@ -1,42 +1,15 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { AppLayout, PrimaryButton, SecondaryButton } from '../components/ui/DesignSystem';
 import { FiSearch, FiMapPin, FiCalendar, FiCompass, FiLayers, FiBell, FiArrowRight, FiSend } from 'react-icons/fi';
+import { getPublicEventsApi, getPublicStatsApi } from '../services/api';
 
-const STATS = [
-  { value: '500+', label: 'EVENTS HOSTED' },
-  { value: '10k+', label: 'ACTIVE USERS' },
-  { value: '50+', label: 'GLOBAL CITIES' },
-  { value: '99%', label: 'SATISFACTION' },
-];
-
-const FEATURED_EVENTS = [
-  {
-    id: 1,
-    title: 'Global Leadership Summit',
-    date: 'Dec 24, 2026',
-    price: '$299.00',
-    category: 'Leadership',
-    img: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 2,
-    title: 'UI/UX Design Masterclass',
-    date: 'Nov 12, 2026',
-    price: '$150.00',
-    category: 'Design',
-    img: 'https://images.unsplash.com/photo-1591453089816-0fbb971b454c?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 3,
-    title: 'Tech Founders Mixer',
-    date: 'Dec 30, 2026',
-    price: 'Free',
-    category: 'Networking',
-    img: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=600&q=80',
-  },
-];
+// ── Format date helper ────────────────────────────────────────────────────────
+function formatDate(dateStr) {
+  if (!dateStr) return 'TBD';
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
 
 const VALUE_PROPS = [
   {
@@ -60,12 +33,157 @@ function Home() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
+  // ── Search & Filter State ───────────────────────────────────────────────────
   const [searchTitle, setSearchTitle] = useState('');
   const [category, setCategory] = useState('All Categories');
   const [location, setLocation] = useState('');
 
+  // ── API State ───────────────────────────────────────────────────────────────
+  const [events, setEvents] = useState([]);
+  const [stats, setStats] = useState({
+    total_events: 0,
+    total_registrations: 0,
+    active_organizers: 0,
+    participants: 0,
+  });
+  const [loading, setLoading] = useState(true);
+
+  // ── Fetch dynamic data on mount ─────────────────────────────────────────────
+  useEffect(() => {
+    let active = true;
+    (async () => {
+      try {
+        const [eventsRes, statsRes] = await Promise.all([
+          getPublicEventsApi({ ordering: 'newest', page: 1 }),
+          getPublicStatsApi(),
+        ]);
+        if (active) {
+          if (eventsRes && eventsRes.success) {
+            setEvents(eventsRes.data || []);
+          }
+          if (statsRes && statsRes.success && statsRes.data) {
+            setStats(statsRes.data);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch landing page data:", err);
+      } finally {
+        if (active) setLoading(false);
+      }
+    })();
+    return () => { active = false; };
+  }, []);
+
+  // ── Handlers ────────────────────────────────────────────────────────────────
+  const handleSearch = () => {
+    const queryParams = [];
+    if (searchTitle.trim()) {
+      queryParams.push(`search=${encodeURIComponent(searchTitle.trim())}`);
+    }
+    if (category && category !== 'All Categories') {
+      queryParams.push(`category=${encodeURIComponent(category)}`);
+    }
+    if (location.trim()) {
+      queryParams.push(`location=${encodeURIComponent(location.trim())}`);
+    }
+    const queryString = queryParams.length > 0 ? `?${queryParams.join('&')}` : '';
+    navigate(`/events${queryString}`);
+  };
+
+  const secondaryBtnStyle = {
+    background: 'transparent',
+    border: '1.5px solid #E5E7EB',
+    borderRadius: '30px',
+    padding: '10px 24px',
+    fontSize: '14px',
+    fontWeight: '600',
+    color: '#374151',
+    cursor: 'pointer',
+    transition: 'all 0.2s',
+  };
+
+  const handleSecondaryMouseEnter = (e) => {
+    e.target.style.borderColor = '#F5C451';
+  };
+
+  const handleSecondaryMouseLeave = (e) => {
+    e.target.style.borderColor = '#E5E7EB';
+  };
+
+  const renderHeroButtons = () => {
+    if (!user) {
+      return (
+        <>
+          <PrimaryButton onClick={() => navigate('/events')}>
+            Explore Events
+          </PrimaryButton>
+          <button 
+            onClick={() => navigate('/register')}
+            style={secondaryBtnStyle}
+            onMouseEnter={handleSecondaryMouseEnter}
+            onMouseLeave={handleSecondaryMouseLeave}
+          >
+            Register
+          </button>
+        </>
+      );
+    }
+
+    if (user.role === 'STUDENT') {
+      return (
+        <>
+          <PrimaryButton onClick={() => navigate('/events')}>
+            Explore Events
+          </PrimaryButton>
+          <button 
+            onClick={() => navigate('/student/registrations')}
+            style={secondaryBtnStyle}
+            onMouseEnter={handleSecondaryMouseEnter}
+            onMouseLeave={handleSecondaryMouseLeave}
+          >
+            My Registrations
+          </button>
+        </>
+      );
+    }
+
+    if (user.role === 'ORGANIZER') {
+      return (
+        <>
+          <PrimaryButton onClick={() => navigate('/organizer/events/create')}>
+            Create Event
+          </PrimaryButton>
+          <button 
+            onClick={() => navigate('/organizer/events')}
+            style={secondaryBtnStyle}
+            onMouseEnter={handleSecondaryMouseEnter}
+            onMouseLeave={handleSecondaryMouseLeave}
+          >
+            My Events
+          </button>
+        </>
+      );
+    }
+
+    if (user.role === 'ADMIN') {
+      return (
+        <PrimaryButton onClick={() => navigate('/admin')}>
+          Admin Dashboard
+        </PrimaryButton>
+      );
+    }
+
+    return null;
+  };
+
   return (
     <AppLayout>
+      <style>{`
+        @keyframes shimmer {
+          0%   { background-position: -200% 0; }
+          100% { background-position:  200% 0; }
+        }
+      `}</style>
       <div style={{ background: '#FFFFFF', minHeight: '100vh', fontFamily: 'var(--font-sans)' }}>
         
         {/* ── 1. HERO SECTION ── */}
@@ -86,27 +204,7 @@ function Home() {
             </p>
             
             <div style={{ display: 'flex', gap: '16px' }}>
-              <PrimaryButton onClick={() => navigate('/events')}>
-                Explore Events
-              </PrimaryButton>
-              <button 
-                onClick={() => navigate(user ? '/create' : '/login')}
-                style={{
-                  background: 'transparent',
-                  border: '1.5px solid #E5E7EB',
-                  borderRadius: '30px',
-                  padding: '10px 24px',
-                  fontSize: '14px',
-                  fontWeight: '600',
-                  color: '#374151',
-                  cursor: 'pointer',
-                  transition: 'all 0.2s',
-                }}
-                onMouseEnter={(e) => e.target.style.borderColor = '#F5C451'}
-                onMouseLeave={(e) => e.target.style.borderColor = '#E5E7EB'}
-              >
-                Create Event
-              </button>
+              {renderHeroButtons()}
             </div>
           </div>
 
@@ -154,11 +252,11 @@ function Home() {
                 onChange={(e) => setCategory(e.target.value)}
                 style={{ width: '100%', border: 'none', outline: 'none', fontSize: '14px', color: '#4B5563', background: '#FFFFFF', cursor: 'pointer' }}
               >
-                <option>All Categories</option>
-                <option>Technology</option>
-                <option>Design</option>
-                <option>Leadership</option>
-                <option>Networking</option>
+                <option value="All Categories">All Categories</option>
+                <option value="Conference">Conference</option>
+                <option value="Workshop">Workshop</option>
+                <option value="Networking">Networking</option>
+                <option value="Tech Summit">Tech Summit</option>
               </select>
             </div>
 
@@ -173,7 +271,7 @@ function Home() {
               />
             </div>
 
-            <PrimaryButton onClick={() => navigate('/events')} style={{ width: '100%', borderRadius: '12px' }}>
+            <PrimaryButton onClick={handleSearch} style={{ width: '100%', borderRadius: '12px' }}>
               Search Events
             </PrimaryButton>
           </div>
@@ -182,7 +280,12 @@ function Home() {
         {/* ── 3. METRIC STATISTICS ── */}
         <section style={{ background: '#F8FAFC', borderTop: '1px solid #F1F5F9', borderBottom: '1px solid #F1F5F9', padding: '40px 24px' }}>
           <div style={{ maxWidth: '1200px', margin: '0 auto', display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: '24px' }} className="stats-grid">
-            {STATS.map((stat, i) => (
+            {[
+              { value: `${stats.total_events || 0}+`, label: 'EVENTS HOSTED' },
+              { value: `${stats.total_registrations || 0}+`, label: 'TOTAL REGISTRATIONS' },
+              { value: `${stats.active_organizers || 0}+`, label: 'ACTIVE ORGANIZERS' },
+              { value: `${stats.participants || 0}+`, label: 'ACTIVE PARTICIPANTS' },
+            ].map((stat, i) => (
               <div key={i} style={{ textAlign: 'center', padding: '16px' }}>
                 <h3 style={{ fontSize: '32px', fontWeight: '800', color: '#111827', margin: '0 0 4px 0', fontFamily: 'var(--font-heading)' }}>
                   {stat.value}
@@ -216,44 +319,75 @@ function Home() {
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '28px' }} className="cards-grid">
-            {FEATURED_EVENTS.map((evt) => (
-              <div 
-                key={evt.id} 
-                style={{ 
-                  background: '#FFFFFF', 
-                  borderRadius: '20px', 
-                  overflow: 'hidden', 
-                  border: '1px solid #E5E7EB',
-                  boxShadow: 'var(--shadow-soft)',
-                  display: 'flex',
-                  flexDirection: 'column',
-                  transition: 'transform 0.2s',
-                  cursor: 'pointer'
-                }}
-                onClick={() => navigate('/events/1')}
-                onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-                onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
-              >
-                <div style={{ height: '180px', overflow: 'hidden', background: '#F1F5F9' }}>
-                  <img src={evt.img} alt={evt.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                </div>
-                <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                  <span style={{ fontSize: '11px', fontWeight: '700', color: '#B45309', background: '#FEF3C7', padding: '3px 8px', borderRadius: '6px', alignSelf: 'flex-start', marginBottom: '12px' }}>
-                    {evt.category.toUpperCase()}
-                  </span>
-                  <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: '0 0 8px 0', lineHeight: '1.4' }}>
-                    {evt.title}
-                  </h3>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#94A3B8', marginTop: 'auto' }}>
-                    <FiCalendar /> <span>{evt.date}</span>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
-                    <span style={{ fontSize: '16px', fontWeight: '800', color: '#111827' }}>{evt.price}</span>
-                    <span style={{ fontSize: '13px', fontWeight: '600', color: '#F5C451' }}>View Details &rarr;</span>
+            {loading ? (
+              [1, 2, 3].map(i => (
+                <div key={i} style={{ borderRadius: '20px', border: '1px solid #E5E7EB', overflow: 'hidden', background: '#FFFFFF', padding: '0px', display: 'flex', flexDirection: 'column', height: '340px' }}>
+                  <div style={{ height: '180px', background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                  <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+                    <div style={{ height: '16px', width: '30%', borderRadius: '4px', background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                    <div style={{ height: '20px', width: '80%', borderRadius: '4px', background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+                    <div style={{ height: '14px', width: '60%', borderRadius: '4px', background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite', marginTop: 'auto' }} />
                   </div>
                 </div>
+              ))
+            ) : events.length === 0 ? (
+              <div style={{ gridColumn: '1 / -1', padding: '40px 20px', textAlign: 'center', background: '#F8FAFC', borderRadius: '20px', border: '1px dashed #E2E8F0' }}>
+                <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>No approved events found. Check back later!</p>
               </div>
-            ))}
+            ) : (
+              events.slice(0, 3).map((evt) => {
+                const isFree = evt.is_paid === false || evt.is_paid === 'false'
+                  ? true
+                  : evt.is_paid === true || evt.is_paid === 'true'
+                  ? false
+                  : (evt.ticket_price === 0 || evt.ticket_price === '0.00' || !evt.ticket_price);
+                const displayPrice = isFree ? 'FREE' : `₹${parseFloat(evt.price || evt.ticket_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
+                return (
+                  <div 
+                    key={evt.id} 
+                    style={{ 
+                      background: '#FFFFFF', 
+                      borderRadius: '20px', 
+                      overflow: 'hidden', 
+                      border: '1px solid #E5E7EB',
+                      boxShadow: 'var(--shadow-soft)',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      transition: 'transform 0.2s',
+                      cursor: 'pointer'
+                    }}
+                    onClick={() => navigate(`/events/${evt.id}`)}
+                    onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                    onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                  >
+                    <div style={{ height: '180px', overflow: 'hidden', background: '#F1F5F9' }}>
+                      {evt.banner_url || evt.banner || evt.image ? (
+                        <img src={evt.banner_url || evt.banner || evt.image} alt={evt.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      ) : (
+                        <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1F2937, #374151)', fontSize: '48px' }}>
+                          🎪
+                        </div>
+                      )}
+                    </div>
+                    <div style={{ padding: '20px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                      <span style={{ fontSize: '11px', fontWeight: '700', color: '#B45309', background: '#FEF3C7', padding: '3px 8px', borderRadius: '6px', alignSelf: 'flex-start', marginBottom: '12px' }}>
+                        {(evt.category || '').toUpperCase()}
+                      </span>
+                      <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: '0 0 8px 0', lineHeight: '1.4' }}>
+                        {evt.title}
+                      </h3>
+                      <div style={{ display: 'flex', alignItems: 'center', gap: '8px', fontSize: '13px', color: '#94A3B8', marginTop: 'auto' }}>
+                        <FiCalendar /> <span>{formatDate(evt.event_date || evt.start_date || evt.start_datetime)}</span>
+                      </div>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '16px', paddingTop: '16px', borderTop: '1px solid #F1F5F9' }}>
+                        <span style={{ fontSize: isFree ? '12px' : '15px', fontWeight: '800', color: isFree ? '#15803D' : '#111827', background: isFree ? '#DCFCE7' : 'transparent', padding: isFree ? '2px 10px' : '0px', borderRadius: isFree ? '20px' : '0px' }}>{displayPrice}</span>
+                        <span style={{ fontSize: '13px', fontWeight: '600', color: '#F5C451' }}>View Details &rarr;</span>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </section>
 
