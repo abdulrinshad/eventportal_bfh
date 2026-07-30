@@ -18,6 +18,10 @@ def build_dashboard_statistics():
     organizers = User.objects.filter(role=User.Role.ORGANIZER).count()
     admins = User.objects.filter(role=User.Role.ADMIN).count()
 
+    pending_organizers = User.objects.filter(organizer_status=User.OrganizerStatus.PENDING).count()
+    approved_organizers = User.objects.filter(organizer_status=User.OrganizerStatus.APPROVED).count()
+    rejected_organizers = User.objects.filter(organizer_status=User.OrganizerStatus.REJECTED).count()
+
     pending_events = Event.objects.filter(status=Event.Status.PENDING).count()
     approved_events = Event.objects.filter(status=Event.Status.APPROVED).count()
     rejected_events = Event.objects.filter(status=Event.Status.REJECTED).count()
@@ -38,12 +42,20 @@ def build_dashboard_statistics():
         or 0
     )
 
+    total_pending_approvals = pending_organizers + pending_events
+
     return {
         "users": {
             "total": total_users,
             "students": students,
             "organizers": organizers,
             "admins": admins,
+        },
+        "organizers": {
+            "pending": pending_organizers,
+            "approved": approved_organizers,
+            "rejected": rejected_organizers,
+            "total_organizers": organizers,
         },
         "events": {
             "total": Event.objects.count(),
@@ -64,6 +76,7 @@ def build_dashboard_statistics():
         "revenue": {
             "estimated": float(estimated_revenue),
         },
+        "pending_approvals_count": total_pending_approvals,
     }
 
 

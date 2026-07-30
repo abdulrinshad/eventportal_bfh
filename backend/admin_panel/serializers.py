@@ -10,10 +10,12 @@ User = get_user_model()
 
 class DashboardStatsSerializer(serializers.Serializer):
     users = serializers.DictField()
+    organizers = serializers.DictField(required=False)
     events = serializers.DictField()
     registrations = serializers.DictField()
     notifications = serializers.DictField()
     revenue = serializers.DictField()
+    pending_approvals_count = serializers.IntegerField(required=False)
 
 
 class AdminUserSerializer(serializers.ModelSerializer):
