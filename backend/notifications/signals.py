@@ -32,10 +32,21 @@ from .models import Notification
 # Helper
 # ─────────────────────────────────────────────────────────────────────────────
 
-def _create_notification(user, notification_type, title, message):
+from django.db.models.signals import post_save, pre_save
+from django.dispatch import receiver
+
+from .models import Notification
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Helper
+# ─────────────────────────────────────────────────────────────────────────────
+
+def _create_notification(user, notification_type, title, message, event=None):
     """Thin wrapper to create a Notification record."""
     Notification.objects.create(
         user=user,
+        event=event,
         notification_type=notification_type,
         title=title,
         message=message,
@@ -43,75 +54,142 @@ def _create_notification(user, notification_type, title, message):
 
 
 # ─────────────────────────────────────────────────────────────────────────────
-# Store previous status on Event instances before save so we can detect
-# genuine status transitions and avoid duplicate notifications.
+# Cache Event state before save to detect transitions & changes
 # ─────────────────────────────────────────────────────────────────────────────
 
 @receiver(pre_save, sender="events.Event")
-def _event_cache_previous_status(sender, instance, **kwargs):
+def _event_cache_previous_state(sender, instance, **kwargs):
     """
-    Store the current (about-to-be-overwritten) status on the instance
-    so that post_save can compare old vs new.
+    Store previous fields on Event instance so post_save can check for
+    status changes, date/venue changes, or general event updates.
     """
     if instance.pk:
         try:
-            instance._previous_status = sender.objects.values_list(
-                "status", flat=True
-            ).get(pk=instance.pk)
+            old = sender.objects.get(pk=instance.pk)
+            instance._previous_status = old.status
+            instance._previous_start_datetime = old.start_datetime
+            instance._previous_end_datetime = old.end_datetime
+            instance._previous_venue = old.venue
         except sender.DoesNotExist:
             instance._previous_status = None
+            instance._previous_start_datetime = None
+            instance._previous_end_datetime = None
+            instance._previous_venue = None
     else:
-        # Brand-new instance — no previous status
         instance._previous_status = None
+        instance._previous_start_datetime = None
+        instance._previous_end_datetime = None
+        instance._previous_venue = None
 
 
 @receiver(post_save, sender="events.Event")
 def _event_status_notifications(sender, instance, created, **kwargs):
     """
-    Fires after every Event save.
-
-    - On creation (created=True) and status=PENDING: "submitted for approval"
-    - On status transition to APPROVED: "approved"
-    - On status transition to REJECTED: "rejected"
+    Fires after every Event save to notify organizer and registered students.
     """
     from events.models import Event  # local import to avoid circular deps
+    from registrations.models import Registration
 
     organizer = instance.organizer
     title_text = instance.title
     old_status = getattr(instance, "_previous_status", None)
     new_status = instance.status
 
-    # 1. New event submitted for review
+    # 1. New event submitted for review (Organizer Notification)
     if created and new_status == Event.Status.PENDING:
         _create_notification(
             user=organizer,
+            event=instance,
             notification_type=Notification.NotificationType.EVENT_SUBMITTED,
             title="Event Submitted for Approval",
             message=f"Your event '{title_text}' has been submitted for approval.",
         )
         return
 
-    # For updates, only fire when status actually changed
-    if old_status == new_status:
-        return
+    # For existing events, handle status transitions & updates
+    if not created:
+        # Check status transitions for organizer
+        if old_status != new_status:
+            if new_status == Event.Status.APPROVED:
+                _create_notification(
+                    user=organizer,
+                    event=instance,
+                    notification_type=Notification.NotificationType.EVENT_APPROVED,
+                    title="Event Approved",
+                    message=f"Your event '{title_text}' has been approved.",
+                )
+            elif new_status == Event.Status.REJECTED:
+                _create_notification(
+                    user=organizer,
+                    event=instance,
+                    notification_type=Notification.NotificationType.EVENT_REJECTED,
+                    title="Event Rejected",
+                    message=f"Your event '{title_text}' has been rejected.",
+                )
+            elif new_status == getattr(Event.Status, "CANCELLED", "CANCELLED"):
+                # Event Cancelled by Organizer -> Notify registered students
+                registered_students = Registration.objects.filter(
+                    event=instance,
+                    status__in=[Registration.Status.CONFIRMED, Registration.Status.WAITLISTED],
+                ).values_list("participant", flat=True).distinct()
 
-    # 2. Event approved
-    if new_status == Event.Status.APPROVED:
-        _create_notification(
-            user=organizer,
-            notification_type=Notification.NotificationType.EVENT_APPROVED,
-            title="Event Approved",
-            message=f"Your event '{title_text}' has been approved.",
+                for student_id in registered_students:
+                    from django.contrib.auth import get_user_model
+                    User = get_user_model()
+                    try:
+                        student_user = User.objects.get(pk=student_id)
+                        _create_notification(
+                            user=student_user,
+                            event=instance,
+                            notification_type=Notification.NotificationType.EVENT_CANCELLED,
+                            title="Event Cancelled",
+                            message=f"{title_text} has been cancelled.",
+                        )
+                    except User.DoesNotExist:
+                        pass
+                return
+
+        # Check schedule or general updates for registered students
+        old_start = getattr(instance, "_previous_start_datetime", None)
+        old_end = getattr(instance, "_previous_end_datetime", None)
+        old_venue = getattr(instance, "_previous_venue", None)
+
+        schedule_changed = (
+            (old_start and old_start != instance.start_datetime)
+            or (old_end and old_end != instance.end_datetime)
+            or (old_venue and old_venue != instance.venue)
         )
 
-    # 3. Event rejected
-    elif new_status == Event.Status.REJECTED:
-        _create_notification(
-            user=organizer,
-            notification_type=Notification.NotificationType.EVENT_REJECTED,
-            title="Event Rejected",
-            message=f"Your event '{title_text}' has been rejected.",
-        )
+        if schedule_changed:
+            registered_students = Registration.objects.filter(
+                event=instance,
+                status__in=[Registration.Status.CONFIRMED, Registration.Status.WAITLISTED],
+            ).select_related("participant")
+
+            for reg in registered_students:
+                _create_notification(
+                    user=reg.participant,
+                    event=instance,
+                    notification_type=Notification.NotificationType.EVENT_UPDATE,
+                    title="Event Schedule Updated",
+                    message=f"The date or venue for {title_text} has changed.",
+                )
+        else:
+            # General event update notification if event is APPROVED
+            if instance.status == Event.Status.APPROVED and old_status == new_status:
+                registered_students = Registration.objects.filter(
+                    event=instance,
+                    status__in=[Registration.Status.CONFIRMED, Registration.Status.WAITLISTED],
+                ).select_related("participant")
+
+                for reg in registered_students:
+                    _create_notification(
+                        user=reg.participant,
+                        event=instance,
+                        notification_type=Notification.NotificationType.EVENT_UPDATE,
+                        title="Event Updated",
+                        message=f"{title_text} has been updated. Please review the latest event details.",
+                    )
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -135,43 +213,75 @@ def _registration_cache_previous_status(sender, instance, **kwargs):
 @receiver(post_save, sender="registrations.Registration")
 def _registration_notifications(sender, instance, created, **kwargs):
     """
-    Fires after every Registration save.
-
-    - On creation (created=True) and status=CONFIRMED or WAITLISTED:
-      notify organizer "New registration received for '<event>'."
-
-    - On status transition to CANCELLED:
-      notify organizer "A participant cancelled registration for '<event>'."
+    Fires after every Registration save to notify student and organizer.
     """
-    from registrations.models import Registration  # local import
+    from registrations.models import Registration
 
+    student = instance.participant
     organizer = instance.event.organizer
     event_title = instance.event.title
     old_status = getattr(instance, "_previous_reg_status", None)
     new_status = instance.status
 
-    # 4. New successful registration
-    if created and new_status in (
-        Registration.Status.CONFIRMED,
-        Registration.Status.WAITLISTED,
-    ):
+    # 1. New registration created
+    if created:
+        if new_status == Registration.Status.CONFIRMED:
+            # Notify Student
+            _create_notification(
+                user=student,
+                event=instance.event,
+                notification_type=Notification.NotificationType.REGISTRATION,
+                title="Registration Confirmed",
+                message=f"You have successfully registered for {event_title}.",
+            )
+        elif new_status == Registration.Status.WAITLISTED:
+            # Notify Student
+            _create_notification(
+                user=student,
+                event=instance.event,
+                notification_type=Notification.NotificationType.WAITLIST,
+                title="Added to Waitlist",
+                message=f"You have been added to the waitlist for {event_title}.",
+            )
+
+        # Notify Organizer
         _create_notification(
             user=organizer,
+            event=instance.event,
             notification_type=Notification.NotificationType.NEW_REGISTRATION,
             title="New Registration",
             message=f"New registration received for '{event_title}'.",
         )
         return
 
-    # 5. Registration cancelled (transition only)
-    if (
-        not created
-        and old_status != new_status
-        and new_status == Registration.Status.CANCELLED
-    ):
-        _create_notification(
-            user=organizer,
-            notification_type=Notification.NotificationType.REGISTRATION_CANCELLED,
-            title="Registration Cancelled",
-            message=f"A participant cancelled registration for '{event_title}'.",
-        )
+    # 2. Existing registration status transition
+    if not created and old_status != new_status:
+        # Cancelled
+        if new_status == Registration.Status.CANCELLED:
+            # Notify Student
+            _create_notification(
+                user=student,
+                event=instance.event,
+                notification_type=Notification.NotificationType.REGISTRATION,
+                title="Registration Cancelled",
+                message=f"Your registration for {event_title} has been cancelled.",
+            )
+            # Notify Organizer
+            _create_notification(
+                user=organizer,
+                event=instance.event,
+                notification_type=Notification.NotificationType.REGISTRATION_CANCELLED,
+                title="Registration Cancelled",
+                message=f"A participant cancelled registration for '{event_title}'.",
+            )
+
+        # Moved from Waitlist to Confirmed
+        elif old_status == Registration.Status.WAITLISTED and new_status == Registration.Status.CONFIRMED:
+            _create_notification(
+                user=student,
+                event=instance.event,
+                notification_type=Notification.NotificationType.WAITLIST,
+                title="Registration Confirmed",
+                message="You have been moved from the waitlist to confirmed registration.",
+            )
+

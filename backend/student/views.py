@@ -29,6 +29,7 @@ from .serializers import (
     StudentEventDetailSerializer,
     StudentEventListSerializer,
     StudentRegistrationListSerializer,
+    StudentProfileSerializer,
 )
 
 User = get_user_model()
@@ -392,6 +393,8 @@ class StudentRegisterView(APIView):
     permission_classes = [IsStudentUser]
 
     def post(self, request, pk):
+        import stripe
+        from django.conf import settings as django_settings
         from django.db.models import Count, Q
 
         # ── Fetch event ────────────────────────────────────────────────────────
@@ -433,6 +436,14 @@ class StudentRegisterView(APIView):
 
         if existing_reg:
             if existing_reg.status == Registration.Status.CONFIRMED:
+                # Already confirmed and paid → reject
+                if existing_reg.payment_status == Registration.PaymentStatus.PAID:
+                    return _error(
+                        "You are already registered for this event.",
+                        {"registration_id": str(existing_reg.id)},
+                        status_code=status.HTTP_409_CONFLICT,
+                    )
+                # Confirmed but not paid (free event) → reject
                 return _error(
                     "You are already registered for this event.",
                     {"registration_id": str(existing_reg.id)},
@@ -450,13 +461,77 @@ class StudentRegisterView(APIView):
         # Seats check
         available_seats = event.max_participants - event.registered_count
 
-        if available_seats <= 0:
-            if not event.enable_waitlist:
-                return _error(
-                    "This event is full and does not have a waitlist.",
-                    status_code=status.HTTP_400_BAD_REQUEST,
+        if available_seats <= 0 and not event.enable_waitlist:
+            return _error(
+                "This event is full and does not have a waitlist.",
+                status_code=status.HTTP_400_BAD_REQUEST,
+            )
+
+        # ── Determine if event is paid ─────────────────────────────────────────
+        is_paid_event = bool(
+            event.is_paid and event.price and event.price > 0
+        )
+
+        # ── PAID EVENT: Create Stripe Checkout Session ─────────────────────────
+        if is_paid_event:
+            stripe.api_key = django_settings.STRIPE_SECRET_KEY
+
+            price_in_paise = int(event.price * 100)  # Stripe uses smallest unit
+
+            frontend_base = "http://localhost:5173"
+            success_url = (
+                f"{frontend_base}/registration-success"
+                f"?session_id={{CHECKOUT_SESSION_ID}}&event_id={event.id}"
+            )
+            cancel_url = f"{frontend_base}/events/{event.id}"
+
+            try:
+                session = stripe.checkout.Session.create(
+                    payment_method_types=["card"],
+                    line_items=[
+                        {
+                            "price_data": {
+                                "currency": "inr",
+                                "product_data": {
+                                    "name": event.title,
+                                    "description": (
+                                        event.description[:200]
+                                        if event.description
+                                        else "Event ticket"
+                                    ),
+                                },
+                                "unit_amount": price_in_paise,
+                            },
+                            "quantity": 1,
+                        }
+                    ],
+                    mode="payment",
+                    success_url=success_url,
+                    cancel_url=cancel_url,
+                    metadata={
+                        "event_id": str(event.id),
+                        "user_id": str(request.user.id),
+                    },
+                    customer_email=request.user.email,
                 )
-            # Register on waitlist
+            except stripe.error.StripeError as exc:
+                return _error(
+                    f"Payment initiation failed: {str(exc)}",
+                    status_code=status.HTTP_502_BAD_GATEWAY,
+                )
+
+            return Response(
+                {
+                    "success": True,
+                    "message": "Stripe Checkout session created.",
+                    "checkout_url": session.url,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        # ── FREE EVENT: Instant registration (existing flow) ───────────────────
+        if available_seats <= 0:
+            # Waitlist (only reachable when enable_waitlist=True)
             reg = Registration.objects.create(
                 event=event,
                 participant=request.user,
@@ -469,22 +544,20 @@ class StudentRegisterView(APIView):
                 status_code=status.HTTP_201_CREATED,
             )
 
-        # Normal registration
+        # Normal free registration
         reg = Registration.objects.create(
             event=event,
             participant=request.user,
             status=Registration.Status.CONFIRMED,
-            payment_status=(
-                Registration.PaymentStatus.PAID
-                if event.ticket_price == 0
-                else Registration.PaymentStatus.PENDING
-            ),
+            payment_status=Registration.PaymentStatus.PAID,
         )
         return _success(
             {"registration_id": str(reg.id), "status": reg.status},
             "Successfully registered for the event!",
             status_code=status.HTTP_201_CREATED,
         )
+
+
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -603,3 +676,52 @@ class StudentRegistrationCancelView(APIView):
             {"registration_id": str(reg.id), "status": reg.status},
             f'Registration for "{reg.event.title}" has been cancelled.',
         )
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# Student Profile View
+# ─────────────────────────────────────────────────────────────────────────────
+
+class StudentProfileView(APIView):
+    """
+    GET   /api/student/profile/
+    PUT   /api/student/profile/
+    PATCH /api/student/profile/
+
+    Allows authenticated students to view and update their profile details.
+    Only allows editing: first_name, last_name, phone_number, bio, profile_image, cover_image.
+    """
+    permission_classes = [IsStudentUser]
+
+    def get(self, request):
+        serializer = StudentProfileSerializer(request.user, context={"request": request})
+        return _success(serializer.data, "Profile fetched successfully.")
+
+    def _update_profile(self, request, partial=True):
+        user = request.user
+        serializer = StudentProfileSerializer(
+            user,
+            data=request.data,
+            partial=partial,
+            context={"request": request}
+        )
+
+        if not serializer.is_valid():
+            return _error("Validation Failed", serializer.errors, status_code=status.HTTP_400_BAD_REQUEST)
+
+        # Handle uploaded image files if sent via multipart/form-data
+        if request.FILES:
+            if "profile_image" in request.FILES:
+                user.profile_image = request.FILES["profile_image"]
+            if "cover_image" in request.FILES:
+                user.cover_image = request.FILES["cover_image"]
+
+        serializer.save()
+        return _success(serializer.data, "Profile updated successfully.")
+
+    def put(self, request):
+        return self._update_profile(request, partial=True)
+
+    def patch(self, request):
+        return self._update_profile(request, partial=True)
+

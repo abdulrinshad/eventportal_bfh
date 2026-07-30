@@ -50,7 +50,29 @@ function StatusBadge({ status }) {
   );
 }
 
-const TABLE_HEADERS = ['Student Name', 'Student Email', 'Event', 'Registered On', 'Status'];
+const PAYMENT_STATUS_COLORS = {
+  PAID:     { bg: '#DCFCE7', color: '#15803D' },
+  PENDING:  { bg: '#FEF3C7', color: '#B45309' },
+  REFUNDED: { bg: '#EDE9FE', color: '#6D28D9' },
+};
+
+function PaymentBadge({ status }) {
+  const style = PAYMENT_STATUS_COLORS[status] || { bg: '#F1F5F9', color: '#475569' };
+  return (
+    <span style={{
+      fontSize: '11px',
+      fontWeight: '700',
+      padding: '3px 10px',
+      borderRadius: '20px',
+      background: style.bg,
+      color: style.color,
+    }}>
+      {status || 'N/A'}
+    </span>
+  );
+}
+
+const TABLE_HEADERS = ['Student Name', 'Student Email', 'Event', 'Registered On', 'Payment', 'Amount Paid', 'Status'];
 const TD_STYLE = { padding: '14px 20px', borderBottom: '1px solid #F1F5F9', verticalAlign: 'middle' };
 
 // ── Main Component ────────────────────────────────────────────────────────────
@@ -252,7 +274,21 @@ export default function Participants() {
                   </span>
                 </td>
 
-                {/* Status */}
+                {/* Payment Status */}
+                <td style={TD_STYLE}>
+                  <PaymentBadge status={reg.payment_status} />
+                </td>
+
+                {/* Amount Paid */}
+                <td style={TD_STYLE}>
+                  <span style={{ fontSize: '13px', color: '#111827', fontWeight: '600' }}>
+                    {reg.paid_amount != null
+                      ? `₹${parseFloat(reg.paid_amount).toLocaleString('en-IN', { minimumFractionDigits: 2 })}`
+                      : '—'}
+                  </span>
+                </td>
+
+                {/* Registration Status */}
                 <td style={TD_STYLE}>
                   <StatusBadge status={reg.status} />
                 </td>

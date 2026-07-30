@@ -28,8 +28,12 @@ class CustomUser(AbstractBaseUser, PermissionsMixin):
     first_name = models.CharField(_("first name"), max_length=150)
     last_name = models.CharField(_("last name"), max_length=150)
     phone_number = models.CharField(_("phone number"), max_length=20, blank=True, null=True)
+    bio = models.TextField(_("bio"), blank=True, null=True)
     profile_image = models.ImageField(
         _("profile image"), upload_to="profile_images/", blank=True, null=True
+    )
+    cover_image = models.ImageField(
+        _("cover image"), upload_to="cover_images/", blank=True, null=True
     )
     role = models.CharField(
         _("role"), max_length=20, choices=Role.choices, default=Role.STUDENT

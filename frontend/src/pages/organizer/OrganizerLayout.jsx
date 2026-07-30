@@ -3,7 +3,7 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { AuthContext } from '../../context/AuthContext';
 import {
   FiGrid, FiPlusCircle, FiCalendar, FiClock, FiXCircle,
-  FiUsers, FiBarChart2, FiBell, FiUser, FiSettings, FiHelpCircle, FiLogOut, FiMenu, FiX
+  FiUsers, FiBarChart2, FiBell, FiUser, FiHelpCircle, FiLogOut, FiMenu, FiX
 } from 'react-icons/fi';
 import { UserAvatar, IconButton } from '../../components/ui/DesignSystem';
 
@@ -22,16 +22,15 @@ export default function OrganizerLayout({ children, activeItem }) {
   };
 
   const menuItems = [
-    { name: 'Dashboard', path: '/organizer/dashboard', icon: <FiGrid /> },
-    { name: 'Create Event', path: '/organizer/events/create', icon: <FiPlusCircle /> },
-    { name: 'My Events', path: '/organizer/events', icon: <FiCalendar /> },
-    { name: 'Pending Approval', path: '/organizer/events/pending', icon: <FiClock /> },
-    { name: 'Rejected Events', path: '/organizer/events/rejected', icon: <FiXCircle /> },
-    { name: 'Participants', path: '/organizer/participants', icon: <FiUsers /> },
-    { name: 'Analytics', path: '/organizer/analytics', icon: <FiBarChart2 /> },
-    { name: 'Notifications', path: '/organizer/notifications', icon: <FiBell /> },
-    { name: 'Profile', path: '/organizer/profile', icon: <FiUser /> },
-    { name: 'Settings', path: '/organizer/settings', icon: <FiSettings /> },
+    { name: 'Dashboard',        path: '/organizer/dashboard',        icon: <FiGrid /> },
+    { name: 'Create Event',     path: '/organizer/events/create',    icon: <FiPlusCircle /> },
+    { name: 'My Events',        path: '/organizer/events',           icon: <FiCalendar /> },
+    { name: 'Pending Approval', path: '/organizer/events/pending',   icon: <FiClock /> },
+    { name: 'Rejected Events',  path: '/organizer/events/rejected',  icon: <FiXCircle /> },
+    { name: 'Participants',     path: '/organizer/participants',      icon: <FiUsers /> },
+    { name: 'Analytics',        path: '/organizer/analytics',        icon: <FiBarChart2 /> },
+    { name: 'Notifications',    path: '/organizer/notifications',    icon: <FiBell /> },
+    { name: 'Profile',          path: '/organizer/profile',          icon: <FiUser /> },
   ];
 
   const getActiveItem = () => {
@@ -45,7 +44,6 @@ export default function OrganizerLayout({ children, activeItem }) {
     if (path.startsWith('/organizer/analytics')) return 'Analytics';
     if (path.startsWith('/organizer/notifications')) return 'Notifications';
     if (path.startsWith('/organizer/profile')) return 'Profile';
-    if (path.startsWith('/organizer/settings')) return 'Settings';
     if (path.startsWith('/organizer/help-center')) return 'Help Center';
     return activeItem || 'Dashboard';
   };
@@ -174,9 +172,9 @@ export default function OrganizerLayout({ children, activeItem }) {
         }}
         className={`app-sidebar ${mobileOpen ? 'open' : ''}`}
       >
-        {/* Logo area */}
+        {/* Logo — links to organizer dashboard, not public home */}
         <Link 
-          to="/" 
+          to="/organizer/dashboard" 
           style={{ 
             padding: '24px', 
             borderBottom: '1px solid #F1F5F9', 

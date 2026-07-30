@@ -18,12 +18,22 @@ class Notification(models.Model):
     """
 
     class NotificationType(models.TextChoices):
-        EVENT_SUBMITTED = "EVENT_SUBMITTED", _("Event Submitted")
-        EVENT_APPROVED  = "EVENT_APPROVED",  _("Event Approved")
-        EVENT_REJECTED  = "EVENT_REJECTED",  _("Event Rejected")
-        NEW_REGISTRATION = "NEW_REGISTRATION", _("New Registration")
+        # Student Notification Types
+        REGISTRATION           = "REGISTRATION", _("Registration")
+        EVENT_UPDATE           = "EVENT_UPDATE", _("Event Update")
+        EVENT_CANCELLED        = "EVENT_CANCELLED", _("Event Cancelled")
+        REMINDER               = "REMINDER", _("Reminder")
+        WAITLIST               = "WAITLIST", _("Waitlist")
+        SYSTEM                 = "SYSTEM", _("System")
+        # Organizer / Admin Notification Types
+        EVENT_SUBMITTED        = "EVENT_SUBMITTED", _("Event Submitted")
+        EVENT_APPROVED         = "EVENT_APPROVED", _("Event Approved")
+        EVENT_REJECTED         = "EVENT_REJECTED", _("Event Rejected")
+        NEW_REGISTRATION       = "NEW_REGISTRATION", _("New Registration")
         REGISTRATION_CANCELLED = "REGISTRATION_CANCELLED", _("Registration Cancelled")
-        GENERAL = "GENERAL", _("General")
+        GENERAL                = "GENERAL", _("General")
+        PAYMENT_RECEIVED       = "PAYMENT_RECEIVED", _("Payment Received")
+
 
     id = models.UUIDField(
         primary_key=True,
@@ -35,6 +45,14 @@ class Notification(models.Model):
         on_delete=models.CASCADE,
         related_name="notifications",
         verbose_name=_("user"),
+    )
+    event = models.ForeignKey(
+        "events.Event",
+        on_delete=models.SET_NULL,
+        related_name="notifications",
+        null=True,
+        blank=True,
+        verbose_name=_("event"),
     )
     notification_type = models.CharField(
         _("notification type"),

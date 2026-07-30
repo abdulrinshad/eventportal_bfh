@@ -22,6 +22,7 @@ class Event(models.Model):
         PENDING   = "PENDING",    _("Pending")
         APPROVED  = "APPROVED",   _("Approved")
         REJECTED  = "REJECTED",   _("Rejected")
+        CANCELLED = "CANCELLED",  _("Cancelled")
         COMPLETED = "COMPLETED",  _("Completed")
 
     class Category(models.TextChoices):

@@ -210,6 +210,27 @@ export const rejectOrganizerRequestApi = async (id) => {
    ========================================== */
 
 /**
+ * GET /api/student/profile/
+ * Returns currently authenticated student's profile data.
+ */
+export const getStudentProfileApi = async () => {
+  const response = await api.get('/student/profile/');
+  return response.data; // { success: true, message, data: { ... } }
+};
+
+/**
+ * PATCH /api/student/profile/
+ * Updates authenticated student's profile fields.
+ * Accepts FormData (multipart/form-data) if profile_image or cover_image is uploaded.
+ */
+export const updateStudentProfileApi = async (formDataOrData) => {
+  const isFormData = formDataOrData instanceof FormData;
+  const config = isFormData ? { headers: { 'Content-Type': 'multipart/form-data' } } : {};
+  const response = await api.patch('/student/profile/', formDataOrData, config);
+  return response.data; // { success: true, message, data: { ... } }
+};
+
+/**
  * GET /api/student/dashboard/
  * Returns live stats and personalised content for the student dashboard.
  */
@@ -346,7 +367,57 @@ export const updateOrganizerProfileApi = async (formData) => {
 
 
 /* ==========================================
-   NOTIFICATIONS
+   STUDENT NOTIFICATIONS
+   ========================================== */
+
+/**
+ * GET /api/student/notifications/
+ * Returns all notifications for the authenticated student.
+ */
+export const getStudentNotificationsApi = async () => {
+  const response = await api.get('/student/notifications/');
+  return response.data; // { success: true, message, data: [...] }
+};
+
+/**
+ * GET /api/student/notifications/unread-count/
+ * Returns count of unread notifications for the authenticated student.
+ */
+export const getStudentUnreadCountApi = async () => {
+  const response = await api.get('/student/notifications/unread-count/');
+  return response.data; // { success: true, count: N }
+};
+
+/**
+ * PATCH /api/student/notifications/:id/read/
+ * Marks a single notification as read.
+ */
+export const markStudentNotificationReadApi = async (id) => {
+  const response = await api.patch(`/student/notifications/${id}/read/`);
+  return response.data; // { success: true, message, data: { id, is_read } }
+};
+
+/**
+ * PATCH /api/student/notifications/mark-all-read/
+ * Marks all notifications as read for the student.
+ */
+export const markAllStudentNotificationsReadApi = async () => {
+  const response = await api.patch('/student/notifications/mark-all-read/');
+  return response.data; // { success: true, message, count }
+};
+
+/**
+ * DELETE /api/student/notifications/:id/
+ * Deletes a single notification by ID.
+ */
+export const deleteStudentNotificationApi = async (id) => {
+  const response = await api.delete(`/student/notifications/${id}/`);
+  return response.data; // { success: true, message }
+};
+
+
+/* ==========================================
+   NOTIFICATIONS (General / Organizer)
    ========================================== */
 
 /**
@@ -377,4 +448,36 @@ export const deleteNotificationApi = async (id) => {
 };
 
 
+/* ==========================================
+   STRIPE PAYMENTS
+   ========================================== */
+
+/**
+ * POST /api/student/events/:eventId/register/
+ * For paid events the backend returns { checkout_url } instead of a registration.
+ * For free events it returns { registration_id, status } as before.
+ * This reuses the existing registerForEventApi — no duplicate endpoint.
+ */
+export const createStripeCheckoutApi = async (eventId) => {
+  const response = await api.post(`/student/events/${eventId}/register/`);
+  return response.data; // { success, checkout_url } OR { success, data: { registration_id, status } }
+};
+
+
+/* ==========================================
+   ORGANIZER — ANALYTICS
+   ========================================== */
+
+/**
+ * GET /api/organizer/analytics/
+ * Returns real analytics for the logged-in organizer:
+ *   { total_revenue, total_registrations, registration_velocity, conversion_rate }
+ */
+export const getOrganizerAnalyticsApi = async () => {
+  const response = await api.get('/organizer/analytics/');
+  return response.data; // { success, data: { total_revenue, total_registrations, ... } }
+};
+
+
 export default api;
+
