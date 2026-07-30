@@ -26,6 +26,8 @@ import {
   User
 } from 'lucide-react';
 
+import { getAdminDashboardStats } from '../../services/adminService';
+
 export default function AdminLayout({ children, currentTab, setCurrentTab }) {
   const { user, logout } = useContext(AuthContext);
   const navigate = useNavigate();
@@ -37,6 +39,25 @@ export default function AdminLayout({ children, currentTab, setCurrentTab }) {
   const [showProfileMenu, setShowProfileMenu] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [pendingBadgeCount, setPendingBadgeCount] = useState(null);
+
+  useEffect(() => {
+    let mounted = true;
+    getAdminDashboardStats()
+      .then((res) => {
+        if (mounted && res?.success && res.data) {
+          const count = res.data.pending_approvals_count ?? 
+            ((res.data.organizers?.pending || 0) + (res.data.events?.pending || 0));
+          setPendingBadgeCount(count);
+        }
+      })
+      .catch(() => {
+        if (mounted) setPendingBadgeCount(0);
+      });
+    return () => {
+      mounted = false;
+    };
+  }, [currentTab]);
 
   // Apply dark mode theme
   useEffect(() => {
@@ -56,7 +77,7 @@ export default function AdminLayout({ children, currentTab, setCurrentTab }) {
     { id: 'users', name: 'Users', icon: Users },
     { id: 'organizers', name: 'Teachers / Organizers', icon: GraduationCap },
     { id: 'events', name: 'Events', icon: Calendar },
-    { id: 'approvals', name: 'Pending Approvals', icon: ShieldCheck, badgeCount: 3 },
+    { id: 'approvals', name: 'Pending Approvals', icon: ShieldCheck, badgeCount: pendingBadgeCount !== null && pendingBadgeCount > 0 ? pendingBadgeCount : undefined },
     { id: 'registrations', name: 'Registrations', icon: Ticket },
     { id: 'payments', name: 'Payments', icon: CreditCard },
     { id: 'categories', name: 'Categories', icon: Tags },
