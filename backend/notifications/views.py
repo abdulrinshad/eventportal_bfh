@@ -1,14 +1,15 @@
 """
 notifications/views.py
 
-Three endpoints:
-  GET  /api/notifications/                — list all notifications for the logged-in user
-  POST /api/notifications/mark-all-read/  — mark every notification as read
-  DELETE /api/notifications/<uuid>/       — delete a single notification (owner only)
+Endpoints:
+  GET    /api/notifications/                — list notifications for the logged-in user
+  POST   /api/notifications/                — create a notification for the logged-in user
+  PATCH  /api/notifications/<uuid>/        — update a notification owned by the user
+  DELETE /api/notifications/<uuid>/        — delete a single notification (owner only)
+  POST   /api/notifications/mark-all-read/  — mark every notification as read
 """
 
 from rest_framework import status
-from rest_framework.generics import ListAPIView
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
 from rest_framework.views import APIView
@@ -17,14 +18,7 @@ from .models import Notification
 from .serializers import NotificationSerializer
 
 
-class NotificationListView(ListAPIView):
-    """
-    GET /api/notifications/
-
-    Returns all notifications for the authenticated user, newest first.
-    No pagination — notification lists are typically short.
-    """
-    serializer_class   = NotificationSerializer
+class NotificationListCreateView(APIView):
     permission_classes = [IsAuthenticated]
 
     def get_queryset(self):
@@ -34,16 +28,102 @@ class NotificationListView(ListAPIView):
             .order_by("-created_at")
         )
 
-    def list(self, request, *args, **kwargs):
-        queryset   = self.get_queryset()
-        serializer = self.get_serializer(queryset, many=True)
+    def get(self, request, *args, **kwargs):
+        queryset = self.get_queryset()
+        serializer = NotificationSerializer(queryset, many=True, context={"request": request})
         return Response(
             {
                 "success": True,
                 "message": "Notifications retrieved successfully.",
-                "count":   queryset.count(),
-                "data":    serializer.data,
+                "count": queryset.count(),
+                "data": serializer.data,
             },
+            status=status.HTTP_200_OK,
+        )
+
+    def post(self, request, *args, **kwargs):
+        serializer = NotificationSerializer(data=request.data, context={"request": request})
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "message": "Validation failed.",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        notification = serializer.save(user=request.user)
+        return Response(
+            {
+                "success": True,
+                "message": "Notification created successfully.",
+                "data": NotificationSerializer(notification, context={"request": request}).data,
+            },
+            status=status.HTTP_201_CREATED,
+        )
+
+
+class NotificationDetailView(APIView):
+    permission_classes = [IsAuthenticated]
+
+    def get_object(self, pk, user):
+        try:
+            return Notification.objects.get(pk=pk, user=user)
+        except Notification.DoesNotExist:
+            return None
+
+    def get(self, request, pk, *args, **kwargs):
+        notification = self.get_object(pk, request.user)
+        if not notification:
+            return Response(
+                {"success": False, "message": "Notification not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = NotificationSerializer(notification, context={"request": request})
+        return Response({"success": True, "data": serializer.data}, status=status.HTTP_200_OK)
+
+    def patch(self, request, pk, *args, **kwargs):
+        notification = self.get_object(pk, request.user)
+        if not notification:
+            return Response(
+                {"success": False, "message": "Notification not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        serializer = NotificationSerializer(notification, data=request.data, partial=True, context={"request": request})
+        if not serializer.is_valid():
+            return Response(
+                {
+                    "success": False,
+                    "message": "Validation failed.",
+                    "errors": serializer.errors,
+                },
+                status=status.HTTP_400_BAD_REQUEST,
+            )
+
+        updated_notification = serializer.save()
+        return Response(
+            {
+                "success": True,
+                "message": "Notification updated successfully.",
+                "data": NotificationSerializer(updated_notification, context={"request": request}).data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+    def delete(self, request, pk, *args, **kwargs):
+        notification = self.get_object(pk, request.user)
+        if not notification:
+            return Response(
+                {"success": False, "message": "Notification not found."},
+                status=status.HTTP_404_NOT_FOUND,
+            )
+
+        notification.delete()
+        return Response(
+            {"success": True, "message": "Notification deleted."},
             status=status.HTTP_200_OK,
         )
 

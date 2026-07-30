@@ -57,6 +57,7 @@ INSTALLED_APPS = [
     'analytics_app',
     'reports',
     'audit_logs',
+    'admin_panel',
 
     # Third-Party Filters
     'django_filters',
