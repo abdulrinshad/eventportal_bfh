@@ -334,20 +334,24 @@ class OrganizerAnalyticsView(APIView):
 
         # ── Total Revenue ─────────────────────────────────────────────────────
         revenue_result = base_qs.filter(
+            status=Registration.Status.CONFIRMED,
             payment_status=Registration.PaymentStatus.PAID,
             paid_amount__isnull=False,
         ).aggregate(total=Sum("paid_amount"))
         total_revenue = float(revenue_result["total"] or 0)
 
-        # ── Total Registrations (non-cancelled) ───────────────────────────────
-        total_registrations = base_qs.exclude(
-            status=Registration.Status.CANCELLED
+        # ── Total Registrations (confirmed only) ───────────────────────────────
+        total_registrations = base_qs.filter(
+            status=Registration.Status.CONFIRMED
         ).count()
 
         # ── Registration Velocity (last 30 days, grouped by day) ──────────────
         thirty_days_ago = timezone.now() - datetime.timedelta(days=30)
         velocity_qs = (
-            base_qs.filter(registration_date__gte=thirty_days_ago)
+            base_qs.filter(
+                status=Registration.Status.CONFIRMED,
+                registration_date__gte=thirty_days_ago
+            )
             .annotate(day=TruncDate("registration_date"))
             .values("day")
             .annotate(count=Count("id"))
@@ -364,11 +368,11 @@ class OrganizerAnalyticsView(APIView):
             .annotate(
                 registration_count=Count(
                     "registrations",
-                    filter=~Q(registrations__status=Registration.Status.CANCELLED),
+                    filter=Q(registrations__status=Registration.Status.CONFIRMED),
                 ),
                 revenue=Sum(
                     "registrations__paid_amount",
-                    filter=Q(registrations__payment_status=Registration.PaymentStatus.PAID),
+                    filter=Q(registrations__status=Registration.Status.CONFIRMED) & Q(registrations__payment_status=Registration.PaymentStatus.PAID),
                 ),
             )
             .order_by("-registration_count")[:5]

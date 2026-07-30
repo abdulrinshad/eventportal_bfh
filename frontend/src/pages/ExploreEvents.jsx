@@ -1,81 +1,118 @@
-import React, { useState, useContext } from 'react';
+import React, { useState, useEffect, useCallback, useContext } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
 import { AppLayout, PageContainer, ContentCard, PrimaryButton } from '../components/ui/DesignSystem';
-import { FiSearch, FiCalendar, FiMapPin, FiSend } from 'react-icons/fi';
+import { FiSearch, FiCalendar, FiMapPin, FiSend, FiLoader } from 'react-icons/fi';
+import { getPublicEventsApi } from '../services/api';
 
-const MOCK_EXPLORE_EVENTS = [
-  {
-    id: 1,
-    title: 'Global AI Summit 2024',
-    date: 'Dec 12-14, 2024',
-    venue: 'Innovation Center, San Francisco',
-    price: '$298.00',
-    category: 'Tech Summit',
-    isFree: false,
-    img: 'https://images.unsplash.com/photo-1540575467063-178a50c2df87?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 2,
-    title: 'Design Systems Masterclass',
-    date: 'Nov 20, 2024',
-    venue: 'London Innovation Lab',
-    price: '$149.00',
-    category: 'Workshop',
-    isFree: false,
-    img: 'https://images.unsplash.com/photo-1591453089816-0fbb971b454c?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 3,
-    title: 'Founders & Funders Night',
-    date: 'Jan 15, 2025',
-    venue: 'The Sky Lounge, New York City',
-    price: 'Free',
-    category: 'Networking',
-    isFree: true,
-    img: 'https://images.unsplash.com/photo-1528605248644-14dd04022da1?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 4,
-    title: 'SaaS Connect 2024',
-    date: 'Jan 18-20, 2025',
-    venue: 'Silicon Valley',
-    price: '$350.00',
-    category: 'Conference',
-    isFree: false,
-    img: 'https://images.unsplash.com/photo-1523580494863-6f3031224c94?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 5,
-    title: 'Future of Fintech',
-    date: 'Feb 05, 2025',
-    venue: 'Boston Financial Hub',
-    price: '$89.00',
-    category: 'Conference',
-    isFree: false,
-    img: 'https://images.unsplash.com/photo-1475721027785-f74eccf877e2?auto=format&fit=crop&w=600&q=80',
-  },
-  {
-    id: 6,
-    title: 'Hack the Vision 2024',
-    date: 'Oct 10-12, 2024',
-    venue: 'Virtual / Online',
-    price: 'Free',
-    category: 'Hackathon',
-    isFree: true,
-    img: 'https://images.unsplash.com/photo-1504384308090-c894fdcc538d?auto=format&fit=crop&w=600&q=80',
-  },
-];
+// ── Format date helper ────────────────────────────────────────────────────────
+function formatDate(dateStr) {
+  if (!dateStr) return 'TBD';
+  return new Date(dateStr).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+// ── Loading skeleton card ─────────────────────────────────────────────────────
+const SkeletonCard = () => (
+  <div style={{ borderRadius: '20px', border: '1px solid #E5E7EB', overflow: 'hidden', background: '#FFFFFF', padding: '0px', display: 'flex', flexDirection: 'column', height: '100%' }}>
+    <div style={{ height: '140px', background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+    <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column', gap: '8px' }}>
+      <div style={{ height: '16px', width: '40%', borderRadius: '4px', background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+      <div style={{ height: '20px', width: '80%', borderRadius: '4px', background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+      <div style={{ height: '12px', width: '60%', borderRadius: '4px', background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+      <div style={{ height: '12px', width: '50%', borderRadius: '4px', background: 'linear-gradient(90deg, #F1F5F9 25%, #E2E8F0 50%, #F1F5F9 75%)', backgroundSize: '200% 100%', animation: 'shimmer 1.4s infinite' }} />
+    </div>
+  </div>
+);
 
 function ExploreEvents() {
   const { user } = useContext(AuthContext);
   const navigate = useNavigate();
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [selectedCats, setSelectedCats] = useState(['All Events']);
+  // ── Filter state ────────────────────────────────────────────────────────────
+  const [searchTerm, setSearchTerm] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('search') || '';
+  });
+  const [debouncedSearch, setDebouncedSearch] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('search') || '';
+  });
+  const [selectedCats, setSelectedCats] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    const cat = params.get('category');
+    return cat ? [cat] : ['All Events'];
+  });
+  const [locationFilter, setLocationFilter] = useState(() => {
+    const params = new URLSearchParams(window.location.search);
+    return params.get('location') || '';
+  });
   const [fromDate, setFromDate] = useState('');
   const [toDate, setToDate] = useState('');
   const [priceType, setPriceType] = useState('All');
+
+  // ── API state ───────────────────────────────────────────────────────────────
+  const [events, setEvents] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const [totalCount, setTotalCount] = useState(0);
+  const [page, setPage] = useState(1);
+  const [hasNext, setHasNext] = useState(false);
+  const [hasPrev, setHasPrev] = useState(false);
+
+  // ── Debounce search input ────────────────────────────────────────────────────
+  useEffect(() => {
+    const t = setTimeout(() => { setDebouncedSearch(searchTerm); setPage(1); }, 400);
+    return () => clearTimeout(t);
+  }, [searchTerm]);
+
+  // ── Fetch events from backend ────────────────────────────────────────────────
+  const fetchEvents = useCallback(async () => {
+    setLoading(true);
+    setError(null);
+    try {
+      const params = {
+        page,
+      };
+      if (debouncedSearch) params.search = debouncedSearch;
+      
+      let apiCategory = undefined;
+      const nonAllCats = selectedCats.filter(c => c !== 'All Events');
+      if (nonAllCats.length === 1) {
+        const cat = nonAllCats[0];
+        if (cat === 'Conference') apiCategory = 'CONFERENCE';
+        else if (cat === 'Workshop') apiCategory = 'WORKSHOP';
+        else if (cat === 'Networking') apiCategory = 'NETWORKING';
+        else if (cat === 'Tech Summit') apiCategory = 'TECHNICAL';
+      }
+      if (apiCategory) {
+        params.category = apiCategory;
+      }
+      
+      if (priceType !== 'All') {
+        params.price_type = priceType;
+      }
+      
+      const res = await getPublicEventsApi(params);
+      if (res && res.success) {
+        setEvents(res.data || []);
+        setTotalCount(res.count || 0);
+        setHasNext(!!res.next);
+        setHasPrev(!!res.previous);
+      } else {
+        setEvents([]);
+        setTotalCount(0);
+      }
+    } catch (err) {
+      setError('Failed to load events. Please try again.');
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [debouncedSearch, selectedCats, priceType, page]);
+
+  useEffect(() => {
+    fetchEvents();
+  }, [fetchEvents]);
 
   const handleCatChange = (catName) => {
     if (catName === 'All Events') {
@@ -90,20 +127,43 @@ function ExploreEvents() {
       }
       setSelectedCats(updated);
     }
+    setPage(1);
   };
 
-  const filteredEvents = MOCK_EXPLORE_EVENTS.filter(evt => {
-    const matchesSearch = evt.title.toLowerCase().includes(searchTerm.toLowerCase()) || 
-                          evt.venue.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    const matchesCat = selectedCats.includes('All Events') || 
-                       selectedCats.some(c => evt.category.toLowerCase().includes(c.toLowerCase()));
-    
-    const matchesPrice = priceType === 'All' || 
-                         (priceType === 'Free' && evt.isFree) || 
-                         (priceType === 'Paid' && !evt.isFree);
+  const filteredEvents = events.filter(evt => {
+    // Client-side date range filter if provided
+    if (fromDate) {
+      const eventDate = new Date(evt.event_date || evt.start_date || evt.start_datetime);
+      const filterFrom = new Date(fromDate);
+      if (eventDate < filterFrom) return false;
+    }
+    if (toDate) {
+      const eventDate = new Date(evt.event_date || evt.start_date || evt.start_datetime);
+      const filterTo = new Date(toDate);
+      if (eventDate > filterTo) return false;
+    }
 
-    return matchesSearch && matchesCat && matchesPrice;
+    // Secondary category check for multi-select logic (if more than 1 category is selected)
+    const nonAllCats = selectedCats.filter(c => c !== 'All Events');
+    if (nonAllCats.length > 1) {
+      const matchesCat = nonAllCats.some(c => {
+        let mapped = c;
+        if (c === 'Conference') mapped = 'CONFERENCE';
+        else if (c === 'Workshop') mapped = 'WORKSHOP';
+        else if (c === 'Networking') mapped = 'NETWORKING';
+        else if (c === 'Tech Summit') mapped = 'TECHNICAL';
+        return evt.category && evt.category.toUpperCase() === mapped.toUpperCase();
+      });
+      if (!matchesCat) return false;
+    }
+
+    // Client-side location check
+    if (locationFilter) {
+      const loc = (evt.venue || evt.location || '').toLowerCase();
+      if (!loc.includes(locationFilter.toLowerCase())) return false;
+    }
+
+    return true;
   });
 
   return (
@@ -120,7 +180,11 @@ function ExploreEvents() {
                 Browse Events
               </h1>
               <p style={{ fontSize: '14px', color: '#6B7280', margin: 0 }}>
-                Discover and manage 124 upcoming events across the globe.
+                {loading ? (
+                  'Loading upcoming events...'
+                ) : (
+                  <>Discover and manage <strong>{totalCount}</strong> upcoming events across the globe.</>
+                )}
               </p>
             </div>
             
@@ -133,8 +197,17 @@ function ExploreEvents() {
                 onChange={(e) => setSearchTerm(e.target.value)}
                 style={{ width: '100%', border: 'none', outline: 'none', fontSize: '13px', color: '#374151' }}
               />
+              {loading && <FiLoader color="#94A3B8" style={{ animation: 'spin 1s linear infinite', flexShrink: 0 }} />}
             </div>
           </div>
+
+          {/* Error banner */}
+          {error && (
+            <div style={{ background: '#FEE2E2', border: '1px solid #FCA5A5', borderRadius: '12px', padding: '14px 18px', color: '#991B1B', fontSize: '14px', marginBottom: '24px' }}>
+              {error}{' '}
+              <span style={{ cursor: 'pointer', fontWeight: '700' }} onClick={fetchEvents}>Retry</span>
+            </div>
+          )}
 
           {/* Two-column layout grid */}
           <div style={{ display: 'grid', gridTemplateColumns: '280px 1fr', gap: '32px' }} className="explore-grid">
@@ -173,7 +246,7 @@ function ExploreEvents() {
                     <input 
                       type="date" 
                       value={fromDate}
-                      onChange={(e) => setFromDate(e.target.value)}
+                      onChange={(e) => { setFromDate(e.target.value); setPage(1); }}
                       style={{ width: '100%', padding: '8px 12px', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
@@ -182,7 +255,7 @@ function ExploreEvents() {
                     <input 
                       type="date" 
                       value={toDate}
-                      onChange={(e) => setToDate(e.target.value)}
+                      onChange={(e) => { setToDate(e.target.value); setPage(1); }}
                       style={{ width: '100%', padding: '8px 12px', border: '1px solid #E5E7EB', borderRadius: '8px', fontSize: '13px', outline: 'none' }}
                     />
                   </div>
@@ -201,7 +274,7 @@ function ExploreEvents() {
                         type="radio" 
                         name="priceType"
                         checked={priceType === type}
-                        onChange={() => setPriceType(type)}
+                        onChange={() => { setPriceType(type); setPage(1); }}
                         style={{ width: '15px', height: '15px', accentColor: '#F5C451' }}
                       />
                       <span>{type === 'All' ? 'All Events' : type === 'Free' ? 'Free Events' : 'Paid Events'}</span>
@@ -214,7 +287,10 @@ function ExploreEvents() {
                 onClick={() => {
                   setSelectedCats(['All Events']);
                   setSearchTerm('');
+                  setFromDate('');
+                  setToDate('');
                   setPriceType('All');
+                  setPage(1);
                 }}
                 style={{
                   width: '100%',
@@ -237,71 +313,114 @@ function ExploreEvents() {
 
             {/* Right Column: Events Grid */}
             <main>
-              {filteredEvents.length > 0 ? (
+              {loading ? (
+                <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '40px' }} className="explore-cards">
+                  {[1, 2, 3, 4, 5, 6].map(i => <SkeletonCard key={i} />)}
+                </div>
+              ) : filteredEvents.length > 0 ? (
                 <>
                   <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: '24px', marginBottom: '40px' }} className="explore-cards">
-                    {filteredEvents.map(evt => (
-                      <div 
-                        key={evt.id} 
-                        style={{ 
-                          background: '#FFFFFF', 
-                          borderRadius: '20px', 
-                          overflow: 'hidden', 
-                          border: '1px solid #E5E7EB',
-                          boxShadow: 'var(--shadow-soft)',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          transition: 'transform 0.2s',
-                          cursor: 'pointer'
-                        }}
-                        onClick={() => navigate('/events/1')}
-                        onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
-                        onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
-                      >
-                        <div style={{ height: '140px', overflow: 'hidden', background: '#F1F5F9' }}>
-                          <img src={evt.img} alt={evt.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-                        </div>
-                        <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
-                          <span style={{ fontSize: '10px', fontWeight: '700', color: '#B45309', background: '#FEF3C7', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start', marginBottom: '8px' }}>
-                            {evt.category.toUpperCase()}
-                          </span>
-                          <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#111827', margin: '0 0 6px 0', lineHeight: '1.4', minHeight: '40px' }}>
-                            {evt.title}
-                          </h3>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#94A3B8', marginBottom: '4px' }}>
-                            <FiCalendar /> <span>{evt.date}</span>
-                          </div>
-                          <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#94A3B8', marginBottom: '12px' }}>
-                            <FiMapPin /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.venue}</span>
-                          </div>
-                          <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #F1F5F9' }}>
-                            {evt.is_paid === false || evt.isFree ? (
-                              <span style={{ fontSize: '12px', fontWeight: '800', color: '#15803D', background: '#DCFCE7', padding: '2px 10px', borderRadius: '20px' }}>FREE</span>
+                    {filteredEvents.map(evt => {
+                      const isFree = evt.is_paid === false || evt.is_paid === 'false'
+                        ? true
+                        : evt.is_paid === true || evt.is_paid === 'true'
+                        ? false
+                        : (evt.ticket_price === 0 || evt.ticket_price === '0.00' || !evt.ticket_price);
+                      const displayPrice = isFree ? 'FREE' : `₹${parseFloat(evt.price || evt.ticket_price || 0).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`;
+                      return (
+                        <div 
+                          key={evt.id} 
+                          style={{ 
+                            background: '#FFFFFF', 
+                            borderRadius: '20px', 
+                            overflow: 'hidden', 
+                            border: '1px solid #E5E7EB',
+                            boxShadow: 'var(--shadow-soft)',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            transition: 'transform 0.2s',
+                            cursor: 'pointer'
+                          }}
+                          onClick={() => navigate(`/events/${evt.id}`)}
+                          onMouseEnter={(e) => e.currentTarget.style.transform = 'translateY(-4px)'}
+                          onMouseLeave={(e) => e.currentTarget.style.transform = 'none'}
+                        >
+                          <div style={{ height: '140px', overflow: 'hidden', background: '#F1F5F9' }}>
+                            {evt.banner_url || evt.banner || evt.image ? (
+                              <img src={evt.banner_url || evt.banner || evt.image} alt={evt.title} style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
                             ) : (
-                              <span style={{ fontSize: '15px', fontWeight: '800', color: '#111827' }}>
-                                {evt.price && (typeof evt.price === 'number' || !isNaN(parseFloat(evt.price)))
-                                  ? `₹${parseFloat(evt.price).toLocaleString('en-IN', { minimumFractionDigits: 0 })}`
-                                  : evt.price || 'Paid'
-                                }
-                              </span>
+                              <div style={{ width: '100%', height: '100%', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'linear-gradient(135deg, #1F2937, #374151)', fontSize: '48px' }}>
+                                🎪
+                              </div>
                             )}
-                            <span style={{ fontSize: '12px', fontWeight: '700', color: '#F5C451' }}>View Details</span>
+                          </div>
+                          <div style={{ padding: '16px', flex: 1, display: 'flex', flexDirection: 'column' }}>
+                            <span style={{ fontSize: '10px', fontWeight: '700', color: '#B45309', background: '#FEF3C7', padding: '2px 6px', borderRadius: '4px', alignSelf: 'flex-start', marginBottom: '8px' }}>
+                              {(evt.category || '').toUpperCase()}
+                            </span>
+                            <h3 style={{ fontSize: '14px', fontWeight: '700', color: '#111827', margin: '0 0 6px 0', lineHeight: '1.4', minHeight: '40px' }}>
+                              {evt.title}
+                            </h3>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#94A3B8', marginBottom: '4px' }}>
+                              <FiCalendar /> <span>{formatDate(evt.event_date || evt.start_date || evt.start_datetime)}</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '11px', color: '#94A3B8', marginBottom: '12px' }}>
+                              <FiMapPin /> <span style={{ overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{evt.venue || evt.location}</span>
+                            </div>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: 'auto', paddingTop: '12px', borderTop: '1px solid #F1F5F9' }}>
+                              <span style={{ fontSize: isFree ? '12px' : '15px', fontWeight: '800', color: isFree ? '#15803D' : '#111827', background: isFree ? '#DCFCE7' : 'transparent', padding: isFree ? '2px 10px' : '0px', borderRadius: isFree ? '20px' : '0px' }}>
+                                {displayPrice}
+                              </span>
+                              <span style={{ fontSize: '12px', fontWeight: '700', color: '#F5C451' }}>View Details</span>
+                            </div>
                           </div>
                         </div>
-                      </div>
-                    ))}
+                      );
+                    })}
                   </div>
 
                   {/* Pagination */}
-                  <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
-                    <button style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#6B7280', fontSize: '14px' }}>&lt;</button>
-                    <button style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F5C451', border: 'none', cursor: 'pointer', color: '#FFFFFF', fontSize: '14px', fontWeight: '700' }}>1</button>
-                    <button style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#FFFFFF', border: '1px solid #E5E7EB', cursor: 'pointer', color: '#6B7280', fontSize: '14px' }}>2</button>
-                    <button style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#FFFFFF', border: '1px solid #E5E7EB', cursor: 'pointer', color: '#6B7280', fontSize: '14px' }}>3</button>
-                    <span style={{ color: '#94A3B8' }}>...</span>
-                    <button style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#FFFFFF', border: '1px solid #E5E7EB', cursor: 'pointer', color: '#6B7280', fontSize: '14px' }}>12</button>
-                    <button style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F1F5F9', border: 'none', cursor: 'pointer', color: '#6B7280', fontSize: '14px' }}>&gt;</button>
-                  </div>
+                  {totalCount > 10 && (
+                    <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '8px' }}>
+                      <button 
+                        onClick={() => setPage(p => Math.max(1, p - 1))}
+                        disabled={!hasPrev}
+                        style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F1F5F9', border: 'none', cursor: hasPrev ? 'pointer' : 'not-allowed', color: '#6B7280', fontSize: '14px' }}
+                      >
+                        &lt;
+                      </button>
+                      {Array.from({ length: Math.ceil(totalCount / 10) }).map((_, idx) => {
+                        const pageNum = idx + 1;
+                        const isActive = page === pageNum;
+                        return (
+                          <button
+                            key={pageNum}
+                            onClick={() => setPage(pageNum)}
+                            style={{
+                              width: '32px',
+                              height: '32px',
+                              borderRadius: '50%',
+                              background: isActive ? '#F5C451' : '#FFFFFF',
+                              border: isActive ? 'none' : '1px solid #E5E7EB',
+                              cursor: 'pointer',
+                              color: isActive ? '#FFFFFF' : '#6B7280',
+                              fontSize: '14px',
+                              fontWeight: isActive ? '700' : '400'
+                            }}
+                          >
+                            {pageNum}
+                          </button>
+                        );
+                      })}
+                      <button 
+                        onClick={() => setPage(p => p + 1)}
+                        disabled={!hasNext}
+                        style={{ width: '32px', height: '32px', borderRadius: '50%', background: '#F1F5F9', border: 'none', cursor: hasNext ? 'pointer' : 'not-allowed', color: '#6B7280', fontSize: '14px' }}
+                      >
+                        &gt;
+                      </button>
+                    </div>
+                  )}
                 </>
               ) : (
                 <div style={{ padding: '60px 24px', textAlign: 'center', background: '#FFFFFF', border: '1.5px dashed #E5E7EB', borderRadius: '20px' }}>
@@ -386,6 +505,10 @@ function ExploreEvents() {
       </div>
 
       <style>{`
+        @keyframes shimmer {
+          0%   { background-position: -200% 0; }
+          100% { background-position:  200% 0; }
+        }
         @media (max-width: 900px) {
           .explore-grid {
             grid-template-columns: 1fr !important;
@@ -400,3 +523,4 @@ function ExploreEvents() {
 }
 
 export default ExploreEvents;
+

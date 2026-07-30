@@ -13,6 +13,8 @@ from .views import (
     AdminOrganizerRequestListAPIView,
     AdminOrganizerApproveAPIView,
     AdminOrganizerRejectAPIView,
+    PublicSiteSettingsView,
+    ContactEnquiryCreateView,
 )
 
 urlpatterns = [
@@ -29,6 +31,10 @@ urlpatterns = [
     path("admin/organizer-requests/", AdminOrganizerRequestListAPIView.as_view(), name="admin_organizer_requests_list"),
     path("admin/organizer-requests/<uuid:user_id>/approve/", AdminOrganizerApproveAPIView.as_view(), name="admin_organizer_approve"),
     path("admin/organizer-requests/<uuid:user_id>/reject/", AdminOrganizerRejectAPIView.as_view(), name="admin_organizer_reject"),
+    
+    # Public CMS endpoints
+    path("public/site-settings/", PublicSiteSettingsView.as_view(), name="public-site-settings"),
+    path("public/contact-enquiry/", ContactEnquiryCreateView.as_view(), name="public-contact-enquiry"),
 ]
 
 
