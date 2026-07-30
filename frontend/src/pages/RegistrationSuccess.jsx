@@ -60,7 +60,7 @@ const RegistrationSuccess = ({ onBackToEvents, onViewRegistrations }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError]   = useState(null);
 
-  /* Fetch real event details from the DB */
+  /* Fetch real event details from the DB and poll until registration is confirmed */
   useEffect(() => {
     if (!eventId) {
       setError('Event information not found in URL.');
@@ -69,23 +69,41 @@ const RegistrationSuccess = ({ onBackToEvents, onViewRegistrations }) => {
     }
 
     let cancelled = false;
-    (async () => {
+    let pollCount = 0;
+    const maxPolls = 10;
+    let timeoutId = null;
+
+    const pollEventDetails = async () => {
       try {
         const res = await getStudentEventDetailApi(eventId);
-        if (!cancelled) {
-          if (res?.success && res?.data) {
-            setEvent(res.data);
-          } else {
-            setError('Could not load event details.');
+        if (cancelled) return;
+
+        if (res?.success && res?.data) {
+          setEvent(res.data);
+          if (res.data.registration_button_state === 'ALREADY_REGISTERED' || pollCount >= maxPolls) {
+            setLoading(false);
+            return;
           }
+          pollCount += 1;
+          timeoutId = setTimeout(pollEventDetails, 2000);
+        } else {
+          setError('Could not load event details.');
+          setLoading(false);
         }
       } catch (err) {
-        if (!cancelled) setError('Could not load event details. Please check your registrations.');
-      } finally {
-        if (!cancelled) setLoading(false);
+        if (!cancelled) {
+          setError('Could not load event details. Please check your registrations.');
+          setLoading(false);
+        }
       }
-    })();
-    return () => { cancelled = true; };
+    };
+
+    pollEventDetails();
+
+    return () => {
+      cancelled = true;
+      if (timeoutId) clearTimeout(timeoutId);
+    };
   }, [eventId]);
 
   /* "Add to Calendar" uses real event data */

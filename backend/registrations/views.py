@@ -14,6 +14,7 @@ except ImportError:
 from decimal import Decimal
 
 from django.conf import settings
+from django.db import transaction
 from django.utils import timezone
 from django.views.decorators.csrf import csrf_exempt
 from django.utils.decorators import method_decorator
@@ -65,11 +66,13 @@ class StripeWebhookView(APIView):
             event = stripe.Webhook.construct_event(
                 payload, sig_header, webhook_secret
             )
-        except ValueError:
+        except ValueError as e:
             # Invalid payload
+            print(f"Stripe Webhook invalid payload error: {e}")
             return Response({"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
-        except stripe.error.SignatureVerificationError:
+        except stripe.error.SignatureVerificationError as e:
             # Invalid signature
+            print(f"Stripe Webhook signature verification error: {e}")
             return Response({"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
         # ── Handle checkout.session.completed ─────────────────────────────────
@@ -87,107 +90,108 @@ class StripeWebhookView(APIView):
           - event_id    : UUID of the Event
           - user_id     : ID of the participant (CustomUser)
         """
-        metadata   = session.get("metadata", {})
-        event_id   = metadata.get("event_id")
-        user_id    = metadata.get("user_id")
+        with transaction.atomic():
+            metadata   = session.get("metadata", {})
+            event_id   = metadata.get("event_id")
+            user_id    = metadata.get("user_id")
 
-        if not event_id or not user_id:
-            # Cannot process without identifiers
-            return
-
-        # ── Load Event and User ───────────────────────────────────────────────
-        try:
-            portal_event = Event.objects.select_related("organizer").get(pk=event_id)
-        except Event.DoesNotExist:
-            return
-
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        try:
-            participant = User.objects.get(pk=user_id)
-        except User.DoesNotExist:
-            return
-
-        # ── Extract payment details ───────────────────────────────────────────
-        stripe_session_id  = session.get("id", "")
-        payment_intent_id  = session.get("payment_intent", "")
-        amount_total       = session.get("amount_total", 0)   # in smallest currency unit (cents/paise)
-        currency           = session.get("currency", "inr")
-        paid_amount        = Decimal(str(amount_total)) / Decimal("100")
-
-        # ── Create or update Registration (idempotent) ────────────────────────
-        existing = Registration.objects.filter(
-            event=portal_event,
-            participant=participant,
-        ).first()
-
-        if existing:
-            if existing.payment_status == Registration.PaymentStatus.PAID:
-                # Already processed (duplicate webhook) — skip
+            if not event_id or not user_id:
+                # Cannot process without identifiers
                 return
-            # Update the existing pending/waitlisted record
-            existing.status            = Registration.Status.CONFIRMED
-            existing.payment_status    = Registration.PaymentStatus.PAID
-            existing.stripe_session_id = stripe_session_id
-            existing.payment_intent    = payment_intent_id
-            existing.paid_amount       = paid_amount
-            existing.currency          = currency
-            existing.paid_at           = timezone.now()
-            existing.save(update_fields=[
-                "status", "payment_status", "stripe_session_id",
-                "payment_intent", "paid_amount", "currency", "paid_at",
-            ])
-            reg = existing
-        else:
-            # Create new Registration
-            reg = Registration.objects.create(
+
+            # ── Load Event and User ───────────────────────────────────────────
+            try:
+                portal_event = Event.objects.select_related("organizer").get(pk=event_id)
+            except Event.DoesNotExist:
+                return
+
+            from django.contrib.auth import get_user_model
+            User = get_user_model()
+            try:
+                participant = User.objects.get(pk=user_id)
+            except User.DoesNotExist:
+                return
+
+            # ── Extract payment details ───────────────────────────────────────────
+            stripe_session_id  = session.get("id", "")
+            payment_intent_id  = session.get("payment_intent", "")
+            amount_total       = session.get("amount_total", 0)   # in smallest currency unit (cents/paise)
+            currency           = session.get("currency", "inr")
+            paid_amount        = Decimal(str(amount_total)) / Decimal("100")
+
+            # ── Create or update Registration (idempotent) ────────────────────────
+            existing = Registration.objects.filter(
                 event=portal_event,
                 participant=participant,
-                status=Registration.Status.CONFIRMED,
-                payment_status=Registration.PaymentStatus.PAID,
-                stripe_session_id=stripe_session_id,
-                payment_intent=payment_intent_id,
-                paid_amount=paid_amount,
-                currency=currency,
-                paid_at=timezone.now(),
+            ).first()
+
+            if existing:
+                if existing.payment_status == Registration.PaymentStatus.PAID:
+                    # Already processed (duplicate webhook) — skip
+                    return
+                # Update the existing pending/waitlisted record
+                existing.status            = Registration.Status.CONFIRMED
+                existing.payment_status    = Registration.PaymentStatus.PAID
+                existing.stripe_session_id = stripe_session_id
+                existing.payment_intent    = payment_intent_id
+                existing.paid_amount       = paid_amount
+                existing.currency          = currency
+                existing.paid_at           = timezone.now()
+                existing.save(update_fields=[
+                    "status", "payment_status", "stripe_session_id",
+                    "payment_intent", "paid_amount", "currency", "paid_at",
+                ])
+                reg = existing
+            else:
+                # Create new Registration
+                reg = Registration.objects.create(
+                    event=portal_event,
+                    participant=participant,
+                    status=Registration.Status.CONFIRMED,
+                    payment_status=Registration.PaymentStatus.PAID,
+                    stripe_session_id=stripe_session_id,
+                    payment_intent=payment_intent_id,
+                    paid_amount=paid_amount,
+                    currency=currency,
+                    paid_at=timezone.now(),
+                )
+
+            # ── Send notifications ────────────────────────────────────────────────
+            organizer   = portal_event.organizer
+            event_title = portal_event.title
+
+            # Notify student — registration confirmed
+            _create_notification(
+                user=participant,
+                event=portal_event,
+                notification_type=Notification.NotificationType.REGISTRATION,
+                title="Registration Confirmed",
+                message=f"Your registration for '{event_title}' is confirmed. Payment of {currency.upper()} {paid_amount} received.",
             )
 
-        # ── Send notifications ────────────────────────────────────────────────
-        organizer   = portal_event.organizer
-        event_title = portal_event.title
+            # Notify student — payment receipt
+            _create_notification(
+                user=participant,
+                event=portal_event,
+                notification_type=Notification.NotificationType.PAYMENT_RECEIVED,
+                title="Payment Received",
+                message=f"Payment of {currency.upper()} {paid_amount} for '{event_title}' has been received successfully.",
+            )
 
-        # Notify student — registration confirmed
-        _create_notification(
-            user=participant,
-            event=portal_event,
-            notification_type=Notification.NotificationType.REGISTRATION,
-            title="Registration Confirmed",
-            message=f"Your registration for '{event_title}' is confirmed. Payment of {currency.upper()} {paid_amount} received.",
-        )
+            # Notify organizer — new registration
+            _create_notification(
+                user=organizer,
+                event=portal_event,
+                notification_type=Notification.NotificationType.NEW_REGISTRATION,
+                title="New Registration",
+                message=f"New paid registration received for '{event_title}'.",
+            )
 
-        # Notify student — payment receipt
-        _create_notification(
-            user=participant,
-            event=portal_event,
-            notification_type=Notification.NotificationType.PAYMENT_RECEIVED,
-            title="Payment Received",
-            message=f"Payment of {currency.upper()} {paid_amount} for '{event_title}' has been received successfully.",
-        )
-
-        # Notify organizer — new registration
-        _create_notification(
-            user=organizer,
-            event=portal_event,
-            notification_type=Notification.NotificationType.NEW_REGISTRATION,
-            title="New Registration",
-            message=f"New paid registration received for '{event_title}'.",
-        )
-
-        # Notify organizer — payment received
-        _create_notification(
-            user=organizer,
-            event=portal_event,
-            notification_type=Notification.NotificationType.PAYMENT_RECEIVED,
-            title="Payment Received",
-            message=f"Payment of {currency.upper()} {paid_amount} received for '{event_title}' from {participant.email}.",
-        )
+            # Notify organizer — payment received
+            _create_notification(
+                user=organizer,
+                event=portal_event,
+                notification_type=Notification.NotificationType.PAYMENT_RECEIVED,
+                title="Payment Received",
+                message=f"Payment of {currency.upper()} {paid_amount} received for '{event_title}' from {participant.email}.",
+            )
