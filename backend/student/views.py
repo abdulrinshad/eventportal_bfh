@@ -17,6 +17,7 @@ from rest_framework.response import Response
 from rest_framework.views import APIView
 
 from events.models import Event
+from notifications.models import Notification
 from registrations.models import Registration
 
 from .permissions import IsStudentUser
@@ -91,125 +92,151 @@ class StudentDashboardView(APIView):
     permission_classes = [IsStudentUser]
 
     def get(self, request):
-        user = request.user
-        now  = timezone.now()
+        try:
+            user = request.user
+            now  = timezone.now()
 
-        # ── Stats ─────────────────────────────────────────────────────────────
-
-        # Total approved events available right now
-        available_events_count = Event.objects.filter(
-            status=Event.Status.APPROVED
-        ).count()
-
-        # Student's own non-cancelled registrations
-        my_registrations_qs = Registration.objects.filter(
-            participant=user,
-        ).exclude(status=Registration.Status.CANCELLED)
-
-        registered_events_count = my_registrations_qs.count()
-
-        # Events attended = registrations where event has passed and attendance is ATTENDED
-        events_attended_count = Registration.objects.filter(
-            participant=user,
-            attendance_status=Registration.AttendanceStatus.ATTENDED,
-        ).count()
-
-        # ── Upcoming Registrations ─────────────────────────────────────────────
-        # Non-cancelled registrations for future events, ordered by event date
-        upcoming_registrations_qs = (
-            Registration.objects.filter(
-                participant=user,
-                event__start_datetime__gte=now,
-                event__status=Event.Status.APPROVED,
+            # ── 1. Student Name ──────────────────────────────────────────────────
+            student_name = user.first_name if user.first_name else (
+                user.get_full_name() if user.get_full_name() else user.email.split("@")[0]
             )
-            .exclude(status=Registration.Status.CANCELLED)
-            .select_related("event", "event__organizer")
-            .order_by("event__start_datetime")[:5]
-        )
 
-        upcoming_registrations_data = DashboardUpcomingRegistrationSerializer(
-            upcoming_registrations_qs, many=True, context={"request": request}
-        ).data
-
-        # ── Recommended Event ──────────────────────────────────────────────────
-        # Pick the soonest upcoming approved event that the student hasn't registered for
-        registered_event_ids = Registration.objects.filter(
-            participant=user,
-        ).exclude(
-            status=Registration.Status.CANCELLED
-        ).values_list("event_id", flat=True)
-
-        recommended_event = (
-            Event.objects.filter(
+            # ── 2. Statistics ────────────────────────────────────────────────────
+            # Available events = Approved events open for registration (deadline not passed)
+            available_events_count = Event.objects.filter(
                 status=Event.Status.APPROVED,
-                start_datetime__gte=now,
                 registration_deadline__gte=now,
+            ).count()
+
+            # Registered events = Logged-in student's active registrations
+            my_registrations_qs = Registration.objects.filter(
+                participant=user,
+            ).exclude(status=Registration.Status.CANCELLED)
+
+            registered_events_count = my_registrations_qs.count()
+
+            # Completed events = Events attended by student or past completed registrations
+            completed_events_count = Registration.objects.filter(
+                participant=user,
+            ).filter(
+                Q(attendance_status=Registration.AttendanceStatus.ATTENDED) |
+                Q(status=Registration.Status.CONFIRMED, event__end_datetime__lt=now) |
+                Q(status=Registration.Status.CONFIRMED, event__status=Event.Status.COMPLETED)
+            ).exclude(status=Registration.Status.CANCELLED).distinct().count()
+
+            # ── 3. Recommended Event ─────────────────────────────────────────────
+            # Approved event open for registration that student has NOT registered for yet
+            registered_event_ids = Registration.objects.filter(
+                participant=user,
+            ).exclude(
+                status=Registration.Status.CANCELLED
+            ).values_list("event_id", flat=True)
+
+            recommended_event = (
+                Event.objects.filter(
+                    status=Event.Status.APPROVED,
+                    start_datetime__gte=now,
+                    registration_deadline__gte=now,
+                )
+                .exclude(id__in=registered_event_ids)
+                .select_related("organizer")
+                .annotate(
+                    registered_count=Count(
+                        "registrations",
+                        filter=~Q(registrations__status=Registration.Status.CANCELLED),
+                    )
+                )
+                .order_by("start_datetime")
+                .first()
             )
-            .exclude(id__in=registered_event_ids)
-            .select_related("organizer")
-            .order_by("start_datetime")
-            .first()
-        )
 
-        recommended_event_data = (
-            DashboardRecommendedEventSerializer(
-                recommended_event, context={"request": request}
-            ).data
-            if recommended_event
-            else None
-        )
+            recommended_event_data = recommended_event
 
-        # ── Recent Activity ────────────────────────────────────────────────────
-        # Last 5 registration actions (most recent first)
-        recent_registrations = (
-            Registration.objects.filter(participant=user)
-            .select_related("event")
-            .order_by("-registration_date")[:5]
-        )
+            # ── 4. Upcoming Registered Events ─────────────────────────────────────
+            # Non-cancelled registrations for future events, ordered by event date
+            upcoming_registrations_qs = (
+                Registration.objects.filter(
+                    participant=user,
+                    event__start_datetime__gte=now,
+                    event__status=Event.Status.APPROVED,
+                )
+                .exclude(status=Registration.Status.CANCELLED)
+                .select_related("event", "event__organizer")
+                .order_by("event__start_datetime")[:10]
+            )
 
-        recent_activity = []
-        for reg in recent_registrations:
-            if reg.status == Registration.Status.CONFIRMED:
-                text = f'You registered for "{reg.event.title}"'
-            elif reg.status == Registration.Status.WAITLISTED:
-                text = f'You joined the waitlist for "{reg.event.title}"'
-            elif reg.status == Registration.Status.CANCELLED:
-                text = f'You cancelled your registration for "{reg.event.title}"'
-            else:
-                text = f'Registration update for "{reg.event.title}"'
+            # ── 5. Activity History ───────────────────────────────────────────────
+            activities = []
 
-            recent_activity.append({
-                "text": text,
-                "date": reg.registration_date,
-                "type": "registration",
-            })
+            # Real Notifications for this student
+            try:
+                notifications = (
+                    Notification.objects.filter(user=user)
+                    .select_related("event")
+                    .order_by("-created_at")[:10]
+                )
+                for notif in notifications:
+                    activities.append({
+                        "text": notif.message or notif.title,
+                        "date": notif.created_at,
+                        "type": notif.notification_type or "notification",
+                    })
+            except Exception:
+                pass
 
-        # ── Organizer Status ───────────────────────────────────────────────────
-        organizer_status_map = {
-            "NOT_APPLIED": "Not Applied",
-            "PENDING":     "Pending Review",
-            "APPROVED":    "Approved",
-            "REJECTED":    "Rejected",
-        }
-        organizer_status = organizer_status_map.get(
-            getattr(user, "organizer_status", "NOT_APPLIED"), "Not Applied"
-        )
+            # Real Registrations for this student
+            recent_registrations = (
+                Registration.objects.filter(participant=user)
+                .select_related("event")
+                .order_by("-registration_date")[:10]
+            )
+            for reg in recent_registrations:
+                if reg.status == Registration.Status.CONFIRMED:
+                    text = f'Registration confirmed for "{reg.event.title}"'
+                elif reg.status == Registration.Status.WAITLISTED:
+                    text = f'Joined waitlist for "{reg.event.title}"'
+                elif reg.status == Registration.Status.CANCELLED:
+                    text = f'Registration cancelled for "{reg.event.title}"'
+                else:
+                    text = f'Registration update for "{reg.event.title}"'
 
-        # ── Build Response ─────────────────────────────────────────────────────
-        dashboard_data = {
-            "registered_events":      registered_events_count,
-            "available_events":       available_events_count,
-            "events_attended":        events_attended_count,
-            "organizer_status":       organizer_status,
-            "recommended_event":      recommended_event_data,
-            "upcoming_registrations": upcoming_registrations_data,
-            "recent_activity":        recent_activity,
-        }
+                activities.append({
+                    "text": text,
+                    "date": reg.registration_date,
+                    "type": "registration",
+                })
 
-        serializer = StudentDashboardSerializer(
-            dashboard_data, context={"request": request}
-        )
-        return _success(serializer.data, "Dashboard data retrieved successfully.")
+            activities.sort(key=lambda x: x["date"], reverse=True)
+            activity_history = activities[:10]
+
+            # ── 6. Organizer Status ───────────────────────────────────────────────
+            organizer_status = getattr(user, "organizer_status", "NOT_APPLIED") or "NOT_APPLIED"
+
+            # ── 7. Response Data ──────────────────────────────────────────────────
+            dashboard_data = {
+                "student_name":           student_name,
+                "registered_events":      registered_events_count,
+                "available_events":       available_events_count,
+                "completed_events":       completed_events_count,
+                "events_attended":        completed_events_count,
+                "organizer_status":       organizer_status,
+                "recommended_event":      recommended_event,
+                "upcoming_registrations": upcoming_registrations_qs,
+                "activity_history":       activity_history,
+                "recent_activity":        activity_history,
+            }
+
+            serializer = StudentDashboardSerializer(
+                dashboard_data, context={"request": request}
+            )
+            return _success(serializer.data, "Dashboard loaded successfully.")
+
+        except Exception as e:
+            return _error(
+                message="Unable to load dashboard.",
+                errors={"detail": str(e)},
+                status_code=status.HTTP_500_INTERNAL_SERVER_ERROR,
+            )
 
 
 # ─────────────────────────────────────────────────────────────────────────────

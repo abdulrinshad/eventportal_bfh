@@ -134,12 +134,30 @@ class StudentProfileSerializer(serializers.ModelSerializer):
 # ─────────────────────────────────────────────────────────────────────────────
 
 def _absolute_url(image_field, request):
-    """Return absolute URL for an image field, or None if empty."""
+    """Return absolute URL for an image field, string, or None if empty."""
     if not image_field:
         return None
-    if request:
-        return request.build_absolute_uri(image_field.url)
-    return image_field.url
+    if isinstance(image_field, str):
+        if request and not image_field.startswith(("http://", "https://")):
+            try:
+                return request.build_absolute_uri(image_field)
+            except Exception:
+                return image_field
+        return image_field
+    if hasattr(image_field, "url"):
+        try:
+            url_str = image_field.url
+            if not url_str:
+                return None
+            if request:
+                try:
+                    return request.build_absolute_uri(url_str)
+                except Exception:
+                    return url_str
+            return url_str
+        except Exception:
+            return None
+    return None
 
 
 # ─────────────────────────────────────────────────────────────────────────────
@@ -393,10 +411,11 @@ class RegistrationSummarySerializer(serializers.Serializer):
 
 class DashboardUpcomingRegistrationSerializer(serializers.ModelSerializer):
     """Minimal registration info for the dashboard upcoming events list."""
-    event_title     = serializers.CharField(source="event.title", read_only=True)
-    event_venue     = serializers.CharField(source="event.venue", read_only=True)
-    event_date      = serializers.DateTimeField(source="event.start_datetime", read_only=True)
-    event_id        = serializers.UUIDField(source="event.id", read_only=True)
+    event_title      = serializers.CharField(source="event.title", read_only=True)
+    event_venue      = serializers.CharField(source="event.venue", read_only=True)
+    event_date       = serializers.DateTimeField(source="event.start_datetime", read_only=True)
+    event_id         = serializers.UUIDField(source="event.id", read_only=True)
+    banner           = serializers.SerializerMethodField()
     event_banner_url = serializers.SerializerMethodField()
 
     class Meta:
@@ -407,12 +426,16 @@ class DashboardUpcomingRegistrationSerializer(serializers.ModelSerializer):
             "event_title",
             "event_venue",
             "event_date",
+            "banner",
             "event_banner_url",
             "ticket_type",
             "status",
             "payment_status",
         ]
         read_only_fields = fields
+
+    def get_banner(self, obj):
+        return _absolute_url(obj.event.banner, self.context.get("request"))
 
     def get_event_banner_url(self, obj):
         return _absolute_url(obj.event.banner, self.context.get("request"))
@@ -422,40 +445,70 @@ class DashboardRecentActivitySerializer(serializers.Serializer):
     """Single recent activity item for the dashboard timeline."""
     text = serializers.CharField()
     date = serializers.DateTimeField()
-    type = serializers.CharField()  # "registration", "event_update", "profile"
+    type = serializers.CharField(required=False, default="activity")
 
 
 class DashboardRecommendedEventSerializer(serializers.ModelSerializer):
-    """Minimal event info for the dashboard recommended event card."""
-    banner_url  = serializers.SerializerMethodField()
-    is_free     = serializers.SerializerMethodField()
+    """Event info for the dashboard recommended event card."""
+    banner_url      = serializers.SerializerMethodField()
+    banner          = serializers.SerializerMethodField()
+    start_date      = serializers.DateTimeField(source="start_datetime", read_only=True)
+    organizer_name  = serializers.SerializerMethodField()
+    available_seats = serializers.SerializerMethodField()
+    is_free         = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
         fields = [
             "id",
-            "banner_url",
             "title",
+            "banner",
+            "banner_url",
             "category",
             "venue",
             "start_datetime",
+            "start_date",
+            "registration_deadline",
             "ticket_price",
+            "available_seats",
+            "organizer_name",
             "is_free",
         ]
+        read_only_fields = fields
 
     def get_banner_url(self, obj):
         return _absolute_url(obj.banner, self.context.get("request"))
 
+    def get_banner(self, obj):
+        return _absolute_url(obj.banner, self.context.get("request"))
+
+    def get_organizer_name(self, obj):
+        if hasattr(obj, "organizer") and obj.organizer:
+            return obj.organizer.get_full_name() or obj.organizer.first_name or obj.organizer.email.split("@")[0]
+        return ""
+
+    def get_available_seats(self, obj):
+        registered = getattr(obj, "registered_count", None)
+        if registered is None:
+            registered = obj.registrations.exclude(status=Registration.Status.CANCELLED).count()
+        return max(0, obj.max_participants - registered)
+
     def get_is_free(self, obj):
+        if hasattr(obj, "is_paid") and obj.is_paid is not None:
+            return not obj.is_paid
         return obj.ticket_price == 0
 
 
 class StudentDashboardSerializer(serializers.Serializer):
     """Full dashboard response serializer."""
-    registered_events     = serializers.IntegerField()
-    available_events      = serializers.IntegerField()
-    events_attended       = serializers.IntegerField()
-    organizer_status      = serializers.CharField()
-    recommended_event     = DashboardRecommendedEventSerializer(allow_null=True)
-    upcoming_registrations = DashboardUpcomingRegistrationSerializer(many=True)
-    recent_activity       = DashboardRecentActivitySerializer(many=True)
+    student_name           = serializers.CharField()
+    registered_events       = serializers.IntegerField()
+    available_events        = serializers.IntegerField()
+    completed_events        = serializers.IntegerField()
+    events_attended         = serializers.IntegerField(required=False)
+    organizer_status        = serializers.CharField()
+    recommended_event       = DashboardRecommendedEventSerializer(allow_null=True)
+    upcoming_registrations   = DashboardUpcomingRegistrationSerializer(many=True)
+    activity_history         = DashboardRecentActivitySerializer(many=True)
+    recent_activity         = DashboardRecentActivitySerializer(many=True, required=False)
+

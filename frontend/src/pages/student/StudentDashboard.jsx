@@ -103,11 +103,12 @@ export default function StudentDashboard() {
   // Derived values with safe defaults
   const registeredCount  = dashData?.registered_events   ?? 0;
   const availableCount   = dashData?.available_events    ?? 0;
-  const attendedCount    = dashData?.events_attended     ?? 0;
+  const attendedCount    = dashData?.completed_events    ?? dashData?.events_attended ?? 0;
   const organizerStatus  = dashData?.organizer_status    ?? user?.organizer_status ?? 'NOT_APPLIED';
   const upcomingRegs     = dashData?.upcoming_registrations ?? [];
-  const recentActivity   = dashData?.recent_activity    ?? [];
+  const recentActivity   = dashData?.activity_history    ?? dashData?.recent_activity ?? [];
   const recommendedEvent = dashData?.recommended_event  ?? null;
+  const studentName      = dashData?.student_name        || user?.first_name || user?.username || 'Student';
 
   // Map backend organizer_status to display values
   const orgStatusDisplay = {
@@ -174,7 +175,7 @@ export default function StudentDashboard() {
           }} />
           <div style={{ position: 'relative', zIndex: 1, maxWidth: '600px' }}>
             <h1 style={{ fontSize: '32px', fontWeight: '800', fontFamily: 'var(--font-heading)', margin: '0 0 8px 0', letterSpacing: '-0.5px' }}>
-              Welcome back, {user?.first_name || user?.username || 'Student'} 👋
+              Welcome back, {studentName} 👋
             </h1>
             <p style={{ fontSize: '15px', color: '#94A3B8', margin: '0 0 24px 0', lineHeight: '1.6' }}>
               Discover premium events, manage your tickets, and track your learning journey.
@@ -299,7 +300,7 @@ export default function StudentDashboard() {
             ) : (
               <ContentCard style={{ padding: '32px', textAlign: 'center' }}>
                 <span style={{ fontSize: '48px', display: 'block', marginBottom: '12px' }}>🔍</span>
-                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: '0 0 6px 0' }}>No recommendations yet</h3>
+                <h3 style={{ fontSize: '16px', fontWeight: '700', color: '#111827', margin: '0 0 6px 0' }}>No recommended events available</h3>
                 <p style={{ fontSize: '14px', color: '#6B7280', margin: '0 0 16px 0' }}>
                   Register for events or explore available ones to see personalised recommendations.
                 </p>
@@ -334,7 +335,7 @@ export default function StudentDashboard() {
                 </div>
               ) : upcomingRegs.length === 0 ? (
                 <p style={{ color: '#6B7280', fontSize: '14px' }}>
-                  You have not registered for any upcoming events yet.{' '}
+                  You have no upcoming registered events.{' '}
                   <span
                     style={{ color: '#2563EB', cursor: 'pointer', fontWeight: '600' }}
                     onClick={() => navigate('/student/events')}
@@ -474,7 +475,7 @@ export default function StudentDashboard() {
                 </div>
               ) : recentActivity.length === 0 ? (
                 <p style={{ color: '#6B7280', fontSize: '14px', textAlign: 'center', padding: '12px 0' }}>
-                  No recent activity yet.
+                  No recent activity.
                 </p>
               ) : (
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '18px', position: 'relative' }}>
