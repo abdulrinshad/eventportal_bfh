@@ -243,40 +243,45 @@ export function AnalyticsTab() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  const loadAnalyticsData = async (isSilent = false) => {
+    try {
+      if (!isSilent) setLoading(true);
+      setError('');
+      const [analyticsRes, reportsRes] = await Promise.all([getAdminAnalytics(), getAdminReports()]);
+      if (analyticsRes?.success) {
+        setAnalytics(analyticsRes.data);
+      }
+      if (reportsRes?.success) {
+        setReports(reportsRes.data);
+      }
+      if (!analyticsRes?.success && !reportsRes?.success) {
+        if (!isSilent) setError('Unable to load analytics data.');
+      } else if (!isSilent && (analyticsRes?.success || reportsRes?.success)) {
+        setSuccessMessage('Analytics snapshot loaded from the live admin API.');
+      }
+    } catch (err) {
+      if (!isSilent) {
+        setError(err?.response?.data?.message || 'Unable to load analytics.');
+      }
+    } finally {
+      if (!isSilent) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
+    loadAnalyticsData(false);
 
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        setSuccessMessage('');
-        const [analyticsRes, reportsRes] = await Promise.all([getAdminAnalytics(), getAdminReports()]);
-        if (mounted) {
-          if (analyticsRes?.success) {
-            setAnalytics(analyticsRes.data);
-          }
-          if (reportsRes?.success) {
-            setReports(reportsRes.data);
-          }
-          if (!analyticsRes?.success && !reportsRes?.success) {
-            setError('Unable to load analytics data.');
-          } else if (analyticsRes?.success || reportsRes?.success) {
-            setSuccessMessage('Analytics snapshot loaded from the live admin API.');
-          }
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(err?.response?.data?.message || 'Unable to load analytics.');
-        }
-      } finally {
-        if (mounted) setLoading(false);
+    // Auto-refresh analytics every 10 seconds for real-time data synchronization
+    const intervalId = setInterval(() => {
+      if (mounted) {
+        loadAnalyticsData(true);
       }
-    };
+    }, 10000);
 
-    load();
     return () => {
       mounted = false;
+      clearInterval(intervalId);
     };
   }, []);
 
@@ -289,16 +294,34 @@ export function AnalyticsTab() {
     ? (analytics?.registration_growth || [])
     : (analytics?.event_growth || analytics?.user_growth || []);
 
-  const chartPoints = selectedGrowthData.map((item) => Number(item.revenue ?? item.registrations ?? item.events ?? item.users ?? 0));
+  const chartPoints = selectedGrowthData.map((item) => Number(item.revenue ?? item.registrations ?? item.events ?? item.users ?? item.count ?? item.value ?? item.total ?? 0));
   const chartLabels = selectedGrowthData.map((item) => item.month || 'N/A');
-  const maxPoint = Math.max(...chartPoints, 1);
-  const stepWidth = selectedGrowthData.length > 1 ? 460 / (selectedGrowthData.length - 1) : 460;
-  const chartPath = chartPoints.length > 1
-    ? chartPoints.map((value, index) => `${index === 0 ? 'M' : 'L'} ${index * stepWidth + 20} ${180 - (value / maxPoint) * 120}`).join(' ')
-    : 'M 20 180';
-  const areaPath = chartPoints.length > 1
-    ? `${chartPath} L ${(selectedGrowthData.length - 1) * stepWidth + 20} 180 L 20 180 Z`
-    : 'M 20 180 L 500 180 L 20 180 Z';
+
+  const numPoints = chartPoints.length;
+  const maxRaw = Math.max(...chartPoints, 0);
+  const maxPoint = maxRaw === 0 ? 1 : maxRaw;
+  const stepWidth = numPoints > 1 ? 460 / (numPoints - 1) : 460;
+
+  let chartPath = 'M 20 160 L 480 160';
+  let areaPath = 'M 20 160 L 480 160 L 480 160 L 20 160 Z';
+  let pointCoords = [];
+
+  if (numPoints === 1) {
+    const singleCy = maxRaw === 0 ? 160 : 160 - (chartPoints[0] / maxPoint) * 120;
+    chartPath = `M 20 ${singleCy} L 480 ${singleCy}`;
+    areaPath = `M 20 ${singleCy} L 480 ${singleCy} L 480 160 L 20 160 Z`;
+    pointCoords = [{ cx: 250, cy: singleCy, value: chartPoints[0] }];
+  } else if (numPoints > 1) {
+    pointCoords = chartPoints.map((value, index) => {
+      const cx = index * stepWidth + 20;
+      const cy = maxRaw === 0 ? 160 : 160 - (value / maxPoint) * 120;
+      return { cx, cy, value };
+    });
+    chartPath = pointCoords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.cx} ${c.cy}`).join(' ');
+    const lastX = (numPoints - 1) * stepWidth + 20;
+    areaPath = `${chartPath} L ${lastX} 160 L 20 160 Z`;
+  }
+
   const registrationRate = analytics?.registrations_by_status
     ? (Number(analytics.registrations_by_status.CONFIRMED || 0) / Math.max(Number(Object.values(analytics.registrations_by_status).reduce((sum, value) => sum + Number(value || 0), 0)), 1)) * 100
     : 0;
@@ -390,19 +413,23 @@ export function AnalyticsTab() {
                       <stop offset="100%" stopColor="#F5C451" stopOpacity="0.0" />
                     </linearGradient>
                   </defs>
-                  <line x1="0" y1="50" x2="500" y2="50" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
-                  <line x1="0" y1="110" x2="500" y2="110" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
-                  <line x1="0" y1="170" x2="500" y2="170" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
+                  <line x1="0" y1="40" x2="500" y2="40" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
+                  <line x1="0" y1="100" x2="500" y2="100" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
+                  <line x1="0" y1="160" x2="500" y2="160" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
                   <path d={areaPath} fill="url(#chartGrad)" />
                   <path d={chartPath} fill="none" stroke="#F5C451" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                  {chartPoints.map((value, index) => (
-                    <circle key={index} cx={index * stepWidth + 20} cy={180 - (value / maxPoint) * 120} r="5" fill="#111827" stroke="#F5C451" strokeWidth="2" />
+                  {pointCoords.map((pt, index) => (
+                    <circle key={index} cx={pt.cx} cy={pt.cy} r={numPoints === 1 ? '6' : '5'} fill="#111827" stroke="#F5C451" strokeWidth="2.5" />
                   ))}
                 </svg>
-                <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', position: 'absolute', bottom: '-24px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
-                  {chartLabels.map((label, index) => (
-                    <span key={index}>{label}</span>
-                  ))}
+                <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', position: 'absolute', bottom: '-24px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', padding: '0 10px' }}>
+                  {chartLabels.length > 0 ? (
+                    chartLabels.map((label, index) => (
+                      <span key={index}>{label}</span>
+                    ))
+                  ) : (
+                    <span>No timeline data available</span>
+                  )}
                 </div>
               </div>
             </div>
