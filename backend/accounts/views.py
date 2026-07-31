@@ -464,3 +464,73 @@ class AdminOrganizerRejectAPIView(APIView):
             },
             status=status.HTTP_200_OK
         )
+
+
+from rest_framework import generics
+from rest_framework.permissions import AllowAny
+from .models import SiteSettings, CompanyValue, Feature, TeamMember, Partner, ContactEnquiry
+from .serializers_cms import (
+    SiteSettingsSerializer,
+    CompanyValueSerializer,
+    FeatureSerializer,
+    TeamMemberSerializer,
+    PartnerSerializer,
+    ContactEnquirySerializer,
+)
+
+class PublicSiteSettingsView(APIView):
+    """
+    GET /api/public/site-settings/
+    Returns global website configurations and CMS dynamic sections.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, *args, **kwargs):
+        settings_obj = SiteSettings.objects.first()
+        if not settings_obj:
+            settings_obj = SiteSettings.objects.create()
+
+        settings_data = SiteSettingsSerializer(settings_obj, context={"request": request}).data
+        values_data = CompanyValueSerializer(CompanyValue.objects.all(), many=True).data
+        features_data = FeatureSerializer(Feature.objects.all(), many=True).data
+        team_data = TeamMemberSerializer(TeamMember.objects.all(), many=True, context={"request": request}).data
+        partners_data = PartnerSerializer(Partner.objects.all(), many=True, context={"request": request}).data
+
+        data = {
+            "settings": settings_data,
+            "values": values_data,
+            "features": features_data,
+            "team": team_data,
+            "partners": partners_data,
+        }
+        return Response(
+            {
+                "success": True,
+                "message": "Site settings and content retrieved successfully.",
+                "data": data
+            },
+            status=status.HTTP_200_OK
+        )
+
+
+class ContactEnquiryCreateView(generics.CreateAPIView):
+    """
+    POST /api/public/contact-enquiry/
+    Submit contact form enquiry.
+    """
+    permission_classes = [AllowAny]
+    serializer_class = ContactEnquirySerializer
+
+    def create(self, request, *args, **kwargs):
+        serializer = self.get_serializer(data=request.data)
+        serializer.is_valid(raise_exception=True)
+        self.perform_create(serializer)
+        return Response(
+            {
+                "success": True,
+                "message": "Your enquiry has been submitted successfully. Our team will get back to you shortly.",
+                "data": serializer.data
+            },
+            status=status.HTTP_201_CREATED
+        )
+

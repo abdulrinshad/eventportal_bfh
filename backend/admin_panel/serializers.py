@@ -10,10 +10,12 @@ User = get_user_model()
 
 class DashboardStatsSerializer(serializers.Serializer):
     users = serializers.DictField()
+    organizers = serializers.DictField(required=False)
     events = serializers.DictField()
     registrations = serializers.DictField()
     notifications = serializers.DictField()
     revenue = serializers.DictField()
+    pending_approvals_count = serializers.IntegerField(required=False)
 
 
 class AdminUserSerializer(serializers.ModelSerializer):
@@ -35,8 +37,9 @@ class AdminUserSerializer(serializers.ModelSerializer):
 
 
 class AdminEventSerializer(serializers.ModelSerializer):
-    organizer_email = serializers.CharField(source="organizer.email", read_only=True)
+    organizer_email = serializers.SerializerMethodField()
     organizer_name = serializers.SerializerMethodField()
+    registrations_count = serializers.SerializerMethodField()
 
     class Meta:
         model = Event
@@ -51,14 +54,27 @@ class AdminEventSerializer(serializers.ModelSerializer):
             "ticket_price",
             "price",
             "is_paid",
+            "max_participants",
+            "banner",
             "organizer_email",
             "organizer_name",
+            "registrations_count",
             "created_at",
             "rejection_reason",
         ]
 
+    def get_organizer_email(self, obj):
+        return obj.organizer.email if obj.organizer else ""
+
     def get_organizer_name(self, obj):
+        if not obj.organizer:
+            return "Unknown"
         return obj.organizer.get_full_name() or obj.organizer.email
+
+    def get_registrations_count(self, obj):
+        if hasattr(obj, "registrations_count"):
+            return obj.registrations_count
+        return obj.registrations.count() if hasattr(obj, "registrations") else 0
 
 
 class AdminApprovalActionSerializer(serializers.Serializer):
@@ -79,10 +95,14 @@ class AdminReportSerializer(serializers.Serializer):
 
 
 class AdminAnalyticsSerializer(serializers.Serializer):
+    summary = serializers.DictField(required=False)
     events_by_status = serializers.DictField()
     registrations_by_status = serializers.DictField()
     user_growth = serializers.ListField()
     event_growth = serializers.ListField()
+    registration_growth = serializers.ListField(required=False)
+    revenue_growth = serializers.ListField(required=False)
+    recent_activity = serializers.ListField(required=False)
 
 
 class AdminRegistrationSerializer(serializers.ModelSerializer):
@@ -108,6 +128,8 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
         ]
 
     def get_participant_name(self, obj):
+        if not obj.participant:
+            return "Unknown"
         return obj.participant.get_full_name() or obj.participant.email
 
     def get_qr_status(self, obj):
@@ -121,6 +143,8 @@ class AdminRegistrationSerializer(serializers.ModelSerializer):
 class AdminAuditLogSerializer(serializers.Serializer):
     actor = serializers.CharField(required=False, allow_null=True)
     action = serializers.CharField()
+    description = serializers.CharField(required=False, allow_null=True)
     object_repr = serializers.CharField(required=False, allow_null=True)
+    related_entity = serializers.CharField(required=False, allow_null=True)
     timestamp = serializers.DateTimeField()
     details = serializers.CharField(required=False, allow_null=True)

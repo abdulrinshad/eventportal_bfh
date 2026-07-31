@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useContext } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import './EventDetails.css';
-import { getStudentEventDetailApi, registerForEventApi } from '../services/api';
+import { getStudentEventDetailApi, getPublicEventDetailApi, registerForEventApi } from '../services/api';
+import { AuthContext } from '../context/AuthContext';
 
 /* ─────────────────────────────────────────────────────
    INLINE SVG ICONS
@@ -136,7 +137,7 @@ const AboutCard = ({ event }) => (
 /* ─────────────────────────────────────────────────────
    PRICING / REGISTRATION CARD (sidebar)
 ───────────────────────────────────────────────────── */
-const PricingCard = ({ event, registering, onRegister, regMsg }) => {
+const PricingCard = ({ event, registering, onRegister, regMsg, isGuest }) => {
   const btnState = event.registration_button_state || 'REGISTER_NOW';
 
   // Prefer new is_paid/price fields; fall back to ticket_price for old events
@@ -201,14 +202,16 @@ const PricingCard = ({ event, registering, onRegister, regMsg }) => {
         </div>
       )}
 
-      <button
-        className="cv-btn-register"
-        onClick={onRegister}
-        disabled={btn.disabled}
-        style={btn.style}
-      >
-        {btn.text}
-      </button>
+      {!isGuest && (
+        <button
+          className="cv-btn-register"
+          onClick={onRegister}
+          disabled={btn.disabled}
+          style={btn.style}
+        >
+          {btn.text}
+        </button>
+      )}
 
       <div className="cv-pricing__secure">
         <IcoShield size={13} />
@@ -464,6 +467,7 @@ import { AppLayout } from '../components/ui/DesignSystem';
 const EventDetails = () => {
   const navigate = useNavigate();
   const { id }   = useParams();
+  const { user } = useContext(AuthContext);
 
   const [event,       setEvent]       = useState(null);
   const [loading,     setLoading]     = useState(true);
@@ -481,7 +485,9 @@ const EventDetails = () => {
       setLoading(true);
       setFetchErr(null);
       try {
-        const res = await getStudentEventDetailApi(id);
+        const res = user
+          ? await getStudentEventDetailApi(id)
+          : await getPublicEventDetailApi(id);
         if (!cancelled && res && res.success) {
           setEvent(res.data);
         } else if (!cancelled) {
@@ -596,11 +602,12 @@ const EventDetails = () => {
             {/* Sticky Sidebar */}
             <div className="cv-sidebar">
               <div className="cv-sidebar__sticky">
-                <PricingCard
+                 <PricingCard
                   event={event}
                   registering={registering}
                   onRegister={handleRegister}
                   regMsg={regMsg}
+                  isGuest={!user}
                 />
                 <AttendeesCard count={event.registered_count || 0} />
               </div>

@@ -15,6 +15,7 @@ from django.utils import timezone
 from rest_framework import filters, generics, status
 from rest_framework.response import Response
 from rest_framework.views import APIView
+from rest_framework.permissions import AllowAny
 
 from events.models import Event
 from notifications.models import Notification
@@ -66,7 +67,7 @@ def _approved_events_qs(user=None):
         .annotate(
             registered_count=Count(
                 "registrations",
-                filter=~Q(registrations__status=Registration.Status.CANCELLED),
+                filter=Q(registrations__status=Registration.Status.CONFIRMED),
             )
         )
     )
@@ -274,7 +275,7 @@ class StudentEventListView(generics.ListAPIView):
             available_seats=ExpressionWrapper(
                 F("max_participants") - Count(
                     "registrations",
-                    filter=~Q(registrations__status=Registration.Status.CANCELLED),
+                    filter=Q(registrations__status=Registration.Status.CONFIRMED),
                     distinct=True,
                 ),
                 output_field=IntegerField(),
@@ -368,13 +369,13 @@ class StudentEventDetailView(APIView):
                 .annotate(
                     registered_count=Count(
                         "registrations",
-                        filter=~Q(registrations__status=Registration.Status.CANCELLED),
+                        filter=Q(registrations__status=Registration.Status.CONFIRMED),
                         distinct=True,
                     ),
                     available_seats=ExpressionWrapper(
                         F("max_participants") - Count(
                             "registrations",
-                            filter=~Q(registrations__status=Registration.Status.CANCELLED),
+                            filter=Q(registrations__status=Registration.Status.CONFIRMED),
                             distinct=True,
                         ),
                         output_field=IntegerField(),
@@ -431,7 +432,7 @@ class StudentRegisterView(APIView):
                 .annotate(
                     registered_count=Count(
                         "registrations",
-                        filter=~Q(registrations__status=Registration.Status.CANCELLED),
+                        filter=Q(registrations__status=Registration.Status.CONFIRMED),
                     )
                 )
                 .get()
@@ -538,6 +539,9 @@ class StudentRegisterView(APIView):
                     metadata={
                         "event_id": str(event.id),
                         "user_id": str(request.user.id),
+                        "student_id": str(request.user.id),
+                        "registration_type": "GENERAL",
+                        "price": str(event.price),
                     },
                     customer_email=request.user.email,
                 )
@@ -751,4 +755,169 @@ class StudentProfileView(APIView):
 
     def patch(self, request):
         return self._update_profile(request, partial=True)
+
+
+# ─────────────────────────────────────────────────────────────────────────────
+# 8. Public Events — List & Detail (No Auth Required)
+# ─────────────────────────────────────────────────────────────────────────────
+
+class PublicEventListView(generics.ListAPIView):
+    """
+    GET /api/public/events/
+
+    Returns paginated list of APPROVED events for unauthenticated/public users.
+    """
+    permission_classes = [AllowAny]
+    serializer_class   = StudentEventListSerializer
+
+    filter_backends = [filters.SearchFilter, filters.OrderingFilter]
+    search_fields   = ["title", "description", "venue"]
+    ordering_fields = ["start_datetime", "created_at", "ticket_price"]
+    ordering        = ["start_datetime"]
+
+    def get_queryset(self):
+        qs = _approved_events_qs()
+
+        # Add available_seats annotation
+        from django.db.models import ExpressionWrapper, F, IntegerField
+        qs = qs.annotate(
+            available_seats=ExpressionWrapper(
+                F("max_participants") - Count(
+                    "registrations",
+                    filter=Q(registrations__status=Registration.Status.CONFIRMED),
+                    distinct=True,
+                ),
+                output_field=IntegerField(),
+            )
+        )
+
+        # Category filter
+        category = self.request.query_params.get("category")
+        if category and category.upper() != "ALL":
+            qs = qs.filter(category=category.upper())
+
+        # Price type filter
+        price_type = self.request.query_params.get("price_type")
+        if price_type == "Free":
+            qs = qs.filter(ticket_price=0)
+        elif price_type == "Paid":
+            qs = qs.exclude(ticket_price=0)
+
+        # Ordering
+        ordering = self.request.query_params.get("ordering")
+        ordering_map = {
+            "upcoming":   "start_datetime",
+            "newest":     "-created_at",
+            "oldest":     "created_at",
+            "price_asc":  "ticket_price",
+            "price_desc": "-ticket_price",
+        }
+        if ordering and ordering in ordering_map:
+            qs = qs.order_by(ordering_map[ordering])
+
+        return qs
+
+    def list(self, request, *args, **kwargs):
+        queryset   = self.filter_queryset(self.get_queryset())
+        page       = self.paginate_queryset(queryset)
+
+        if page is not None:
+            serializer = self.get_serializer(
+                page, many=True, context={"request": request}
+            )
+            paginated  = self.get_paginated_response(serializer.data)
+            return Response(
+                {
+                    "success": True,
+                    "message": "Events retrieved successfully.",
+                    "count":   self.paginator.page.paginator.count,
+                    "next":    paginated.data.get("next"),
+                    "previous": paginated.data.get("previous"),
+                    "data":    serializer.data,
+                },
+                status=status.HTTP_200_OK,
+            )
+
+        serializer = self.get_serializer(
+            queryset, many=True, context={"request": request}
+        )
+        return Response(
+            {
+                "success": True,
+                "message": "Events retrieved successfully.",
+                "count":   queryset.count(),
+                "data":    serializer.data,
+            },
+            status=status.HTTP_200_OK,
+        )
+
+
+class PublicEventDetailView(APIView):
+    """
+    GET /api/public/events/<uuid>/
+
+    Returns event details without student specific registration button state.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request, pk):
+        from django.db.models import ExpressionWrapper, F, IntegerField
+
+        try:
+            event = (
+                Event.objects.filter(
+                    pk=pk,
+                    status=Event.Status.APPROVED,
+                )
+                .select_related("organizer")
+                .annotate(
+                    registered_count=Count(
+                        "registrations",
+                        filter=~Q(registrations__status=Registration.Status.CANCELLED),
+                        distinct=True,
+                    ),
+                    available_seats=ExpressionWrapper(
+                        F("max_participants") - Count(
+                            "registrations",
+                            filter=~Q(registrations__status=Registration.Status.CANCELLED),
+                            distinct=True,
+                        ),
+                        output_field=IntegerField(),
+                    ),
+                )
+                .get()
+            )
+        except Event.DoesNotExist:
+            return _error("Event not found.", status_code=status.HTTP_404_NOT_FOUND)
+
+        # Set empty/None student registration since we are in public view
+        event._student_registration = None
+
+        serializer = StudentEventDetailSerializer(
+            event, context={"request": request}
+        )
+        return _success(serializer.data, "Event details retrieved successfully.")
+
+
+class PublicStatsView(APIView):
+    """
+    GET /api/public/stats/
+
+    Returns global platform metrics: Total Events, Total Registrations, Active Organizers, Participants.
+    """
+    permission_classes = [AllowAny]
+
+    def get(self, request):
+        total_events = Event.objects.filter(status=Event.Status.APPROVED).count()
+        total_registrations = Registration.objects.exclude(status=Registration.Status.CANCELLED).count()
+        active_organizers = User.objects.filter(role=User.Role.ORGANIZER, is_active=True).count()
+        participants = User.objects.filter(role=User.Role.STUDENT, is_active=True).count()
+
+        data = {
+            "total_events": total_events,
+            "total_registrations": total_registrations,
+            "active_organizers": active_organizers,
+            "participants": participants,
+        }
+        return _success(data, "Platform statistics retrieved successfully.")
 

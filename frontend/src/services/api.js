@@ -11,6 +11,13 @@ const api = axios.create({
   },
 });
 
+const publicApi = axios.create({
+  baseURL: API_BASE_URL,
+  headers: {
+    'Content-Type': 'application/json',
+  },
+});
+
 // Request Interceptor: Attach JWT Token
 api.interceptors.request.use(
   (config) => {
@@ -256,12 +263,57 @@ export const getStudentEventsApi = async (params = {}) => {
 };
 
 /**
+ * GET /api/public/events/
+ * Returns approved events without authentication requirements.
+ */
+export const getPublicEventsApi = async (params = {}) => {
+  const response = await publicApi.get('/public/events/', { params });
+  return response.data;
+};
+
+/**
  * GET /api/student/events/:id/
  * Returns full details of a single approved event + registration button state.
  */
 export const getStudentEventDetailApi = async (id) => {
   const response = await api.get(`/student/events/${id}/`);
   return response.data; // { success, message, data: { ...event, registration_button_state } }
+};
+
+/**
+ * GET /api/public/events/:id/
+ * Returns full details of a single approved event without authentication requirements.
+ */
+export const getPublicEventDetailApi = async (id) => {
+  const response = await publicApi.get(`/public/events/${id}/`);
+  return response.data;
+};
+
+/**
+ * GET /api/public/stats/
+ * Returns global platform metrics.
+ */
+export const getPublicStatsApi = async () => {
+  const response = await publicApi.get('/public/stats/');
+  return response.data;
+};
+
+/**
+ * GET /api/public/site-settings/
+ * Returns global website config and dynamic CMS sections.
+ */
+export const getPublicSiteSettingsApi = async () => {
+  const response = await publicApi.get('/public/site-settings/');
+  return response.data;
+};
+
+/**
+ * POST /api/public/contact-enquiry/
+ * Submit contact form details.
+ */
+export const submitContactEnquiryApi = async (formData) => {
+  const response = await publicApi.post('/public/contact-enquiry/', formData);
+  return response.data;
 };
 
 /**

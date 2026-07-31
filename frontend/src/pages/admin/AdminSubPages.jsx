@@ -3,7 +3,8 @@ import {
   TrendingUp, TrendingDown, Eye, Edit2, Trash2, ShieldAlert, CheckCircle, XCircle,
   Download, Filter, Search, Plus, Calendar, DollarSign, Users, Award, ShieldCheck,
   RotateCcw, Send, Settings, Mail, Bell, MessageSquare, PlusCircle, AlertCircle,
-  Ticket
+  Ticket,
+  GraduationCap
 } from 'lucide-react';
 import {
   approveAdminEvent,
@@ -112,8 +113,9 @@ export function OverviewTab({ setActiveTab, setGlobalToast }) {
     ? [
         { title: 'Total Users', value: stats.users?.total?.toLocaleString() || '0', trend: '+0.0%', isUp: true, points: [10, 12, 15, 14, 18, 22, 28], icon: Users, color: '#6366F1' },
         { title: 'Total Events', value: stats.events?.total?.toLocaleString() || '0', trend: '+0.0%', isUp: true, points: [5, 6, 8, 7, 10, 12, 15], icon: Calendar, color: '#3B82F6' },
-        { title: 'Pending Events', value: stats.events?.pending?.toLocaleString() || '0', trend: 'Needs review', isUp: false, points: [12, 14, 13, 15, 17, 16, 18], icon: TrendingUp, color: '#10B981' },
-        { title: 'Completed Events', value: stats.events?.completed?.toLocaleString() || '0', trend: '+0.0%', isUp: true, points: [30, 45, 60, 85, 110, 150, 198], icon: CheckCircle, color: '#8B5CF6' },
+        { title: 'Pending Event Approvals', value: stats.events?.pending?.toLocaleString() || '0', trend: 'Needs review', isUp: false, points: [12, 14, 13, 15, 17, 16, 18], icon: TrendingUp, color: '#10B981' },
+        { title: 'Pending Organizers', value: (stats.organizers?.pending ?? 0).toLocaleString(), trend: 'Awaiting review', isUp: false, points: [5, 8, 10, 12, 9, 11, 14], icon: GraduationCap, color: '#F5C451' },
+        { title: 'Approved Organizers', value: (stats.organizers?.approved ?? stats.users?.organizers ?? 0).toLocaleString(), trend: 'Verified', isUp: true, points: [15, 20, 25, 30, 35, 40, 45], icon: CheckCircle, color: '#8B5CF6' },
         { title: 'Total Revenue', value: formatCurrency(stats.revenue?.estimated), trend: '+0.0%', isUp: true, points: [20, 25, 32, 45, 58, 70, 84], icon: DollarSign, color: '#F5C451' },
         { title: 'Registrations', value: stats.registrations?.total?.toLocaleString() || '0', trend: '+0.0%', isUp: true, points: [80, 95, 110, 105, 118, 125, 124], icon: Ticket, color: '#14B8A6' },
         { title: 'Unread Notifications', value: stats.notifications?.unread?.toLocaleString() || '0', trend: 'Needs attention', isUp: false, points: [8, 6, 5, 5, 4, 3, 3], icon: ShieldAlert, color: '#EF4444' },
@@ -241,56 +243,90 @@ export function AnalyticsTab() {
   const [error, setError] = useState('');
   const [successMessage, setSuccessMessage] = useState('');
 
+  const loadAnalyticsData = async (isSilent = false) => {
+    try {
+      if (!isSilent) setLoading(true);
+      setError('');
+      const [analyticsRes, reportsRes] = await Promise.all([getAdminAnalytics(), getAdminReports()]);
+      if (analyticsRes?.success) {
+        setAnalytics(analyticsRes.data);
+      }
+      if (reportsRes?.success) {
+        setReports(reportsRes.data);
+      }
+      if (!analyticsRes?.success && !reportsRes?.success) {
+        if (!isSilent) setError('Unable to load analytics data.');
+      } else if (!isSilent && (analyticsRes?.success || reportsRes?.success)) {
+        setSuccessMessage('Analytics snapshot loaded from the live admin API.');
+      }
+    } catch (err) {
+      if (!isSilent) {
+        setError(err?.response?.data?.message || 'Unable to load analytics.');
+      }
+    } finally {
+      if (!isSilent) setLoading(false);
+    }
+  };
+
   useEffect(() => {
     let mounted = true;
+    loadAnalyticsData(false);
 
-    const load = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        setSuccessMessage('');
-        const [analyticsRes, reportsRes] = await Promise.all([getAdminAnalytics(), getAdminReports()]);
-        if (mounted) {
-          if (analyticsRes?.success) {
-            setAnalytics(analyticsRes.data);
-          }
-          if (reportsRes?.success) {
-            setReports(reportsRes.data);
-          }
-          if (!analyticsRes?.success && !reportsRes?.success) {
-            setError('Unable to load analytics data.');
-          } else if (analyticsRes?.success || reportsRes?.success) {
-            setSuccessMessage('Analytics snapshot loaded from the live admin API.');
-          }
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(err?.response?.data?.message || 'Unable to load analytics.');
-        }
-      } finally {
-        if (mounted) setLoading(false);
+    // Auto-refresh analytics every 10 seconds for real-time data synchronization
+    const intervalId = setInterval(() => {
+      if (mounted) {
+        loadAnalyticsData(true);
       }
-    };
+    }, 10000);
 
-    load();
     return () => {
       mounted = false;
+      clearInterval(intervalId);
     };
   }, []);
 
   const categories = reports?.by_category || [];
   const totalCategoryCount = categories.reduce((sum, item) => sum + Number(item.count || 0), 0);
-  const chartPoints = (analytics?.user_growth || []).map((item) => Number(item.users || 0));
-  const maxPoint = Math.max(...chartPoints, 1);
-  const chartPath = chartPoints.length > 1
-    ? chartPoints.map((value, index) => `${index === 0 ? 'M' : 'L'} ${index * 80 + 20} ${180 - (value / maxPoint) * 120}`).join(' ')
-    : 'M 20 180';
-  const areaPath = chartPoints.length > 1
-    ? `${chartPath} L 500 180 L 20 180 Z`
-    : 'M 20 180 L 500 180 L 20 180 Z';
+
+  const selectedGrowthData = selectedMetric === 'revenue'
+    ? (analytics?.revenue_growth || [])
+    : selectedMetric === 'registrations'
+    ? (analytics?.registration_growth || [])
+    : (analytics?.event_growth || analytics?.user_growth || []);
+
+  const chartPoints = selectedGrowthData.map((item) => Number(item.revenue ?? item.registrations ?? item.events ?? item.users ?? item.count ?? item.value ?? item.total ?? 0));
+  const chartLabels = selectedGrowthData.map((item) => item.month || 'N/A');
+
+  const numPoints = chartPoints.length;
+  const maxRaw = Math.max(...chartPoints, 0);
+  const maxPoint = maxRaw === 0 ? 1 : maxRaw;
+  const stepWidth = numPoints > 1 ? 460 / (numPoints - 1) : 460;
+
+  let chartPath = 'M 20 160 L 480 160';
+  let areaPath = 'M 20 160 L 480 160 L 480 160 L 20 160 Z';
+  let pointCoords = [];
+
+  if (numPoints === 1) {
+    const singleCy = maxRaw === 0 ? 160 : 160 - (chartPoints[0] / maxPoint) * 120;
+    chartPath = `M 20 ${singleCy} L 480 ${singleCy}`;
+    areaPath = `M 20 ${singleCy} L 480 ${singleCy} L 480 160 L 20 160 Z`;
+    pointCoords = [{ cx: 250, cy: singleCy, value: chartPoints[0] }];
+  } else if (numPoints > 1) {
+    pointCoords = chartPoints.map((value, index) => {
+      const cx = index * stepWidth + 20;
+      const cy = maxRaw === 0 ? 160 : 160 - (value / maxPoint) * 120;
+      return { cx, cy, value };
+    });
+    chartPath = pointCoords.map((c, i) => `${i === 0 ? 'M' : 'L'} ${c.cx} ${c.cy}`).join(' ');
+    const lastX = (numPoints - 1) * stepWidth + 20;
+    areaPath = `${chartPath} L ${lastX} 160 L 20 160 Z`;
+  }
+
   const registrationRate = analytics?.registrations_by_status
     ? (Number(analytics.registrations_by_status.CONFIRMED || 0) / Math.max(Number(Object.values(analytics.registrations_by_status).reduce((sum, value) => sum + Number(value || 0), 0)), 1)) * 100
     : 0;
+
+  const summaryData = analytics?.summary || {};
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -338,6 +374,30 @@ export function AnalyticsTab() {
         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading analytics…</div>
       ) : (
         <>
+          {/* Summary Metric Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Events</span>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', margin: '6px 0 0 0' }}>{(summaryData.total_events ?? 0).toLocaleString()}</h3>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Students</span>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', margin: '6px 0 0 0' }}>{(summaryData.total_students ?? 0).toLocaleString()}</h3>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Organizers</span>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', margin: '6px 0 0 0' }}>{(summaryData.total_organizers ?? 0).toLocaleString()}</h3>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Registrations</span>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', margin: '6px 0 0 0' }}>{(summaryData.total_registrations ?? 0).toLocaleString()}</h3>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Revenue</span>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', margin: '6px 0 0 0', color: '#10B981' }}>{formatCurrency(summaryData.total_revenue ?? 0)}</h3>
+            </div>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }} className="analytics-grid">
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '20px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px' }}>
@@ -353,19 +413,23 @@ export function AnalyticsTab() {
                       <stop offset="100%" stopColor="#F5C451" stopOpacity="0.0" />
                     </linearGradient>
                   </defs>
-                  <line x1="0" y1="50" x2="500" y2="50" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
-                  <line x1="0" y1="110" x2="500" y2="110" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
-                  <line x1="0" y1="170" x2="500" y2="170" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
+                  <line x1="0" y1="40" x2="500" y2="40" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
+                  <line x1="0" y1="100" x2="500" y2="100" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
+                  <line x1="0" y1="160" x2="500" y2="160" stroke="var(--border-color-light)" strokeWidth="1" strokeDasharray="5,5" />
                   <path d={areaPath} fill="url(#chartGrad)" />
                   <path d={chartPath} fill="none" stroke="#F5C451" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
-                  {chartPoints.map((value, index) => (
-                    <circle key={index} cx={index * 80 + 20} cy={180 - (value / maxPoint) * 120} r="5" fill="#111827" stroke="#F5C451" strokeWidth="2" />
+                  {pointCoords.map((pt, index) => (
+                    <circle key={index} cx={pt.cx} cy={pt.cy} r={numPoints === 1 ? '6' : '5'} fill="#111827" stroke="#F5C451" strokeWidth="2.5" />
                   ))}
                 </svg>
-                <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', position: 'absolute', bottom: '-24px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
-                  {(analytics?.user_growth || []).map((item, index) => (
-                    <span key={index}>{item.month || `M${index + 1}`}</span>
-                  ))}
+                <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', position: 'absolute', bottom: '-24px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600', padding: '0 10px' }}>
+                  {chartLabels.length > 0 ? (
+                    chartLabels.map((label, index) => (
+                      <span key={index}>{label}</span>
+                    ))
+                  ) : (
+                    <span>No timeline data available</span>
+                  )}
                 </div>
               </div>
             </div>
@@ -395,24 +459,24 @@ export function AnalyticsTab() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }} className="analytics-grid">
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '20px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '16px' }}>Daily Active Users (DAU)</h3>
-              <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '8px' }}>
-                {Array.from({ length: Math.max((analytics?.user_growth || []).length, 12) }).map((_, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-                    <div
-                      style={{
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '4px',
-                        background: i % 4 === 0 ? '#10B981' : i % 3 === 0 ? '#34D399' : i % 2 === 0 ? '#A7F3D0' : '#F1F5F9',
-                        cursor: 'pointer'
-                      }}
-                      title={`Activity Level: ${i * 4 + 10}`}
-                    />
-                  </div>
-                ))}
+              <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '16px' }}>Recent Activity Feed</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {(analytics?.recent_activity || []).length > 0 ? (
+                  (analytics.recent_activity || []).map((act, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '12px', background: 'var(--bg-dashboard)', border: '1px solid var(--border-color-light)' }}>
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '13px' }}>{act.title}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{act.description}</div>
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {act.timestamp ? new Date(act.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No recent activity recorded.</div>
+                )}
               </div>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Interactive activity density from recent user growth data</span>
             </div>
 
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '20px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
@@ -877,23 +941,28 @@ export function EventsTab({ setGlobalToast }) {
       try {
         setLoading(true);
         setError('');
-        const response = await getAdminEvents();
+        const response = await getAdminEvents({ status: 'ALL' });
         if (mounted) {
           if (response?.success) {
-            setEvents((response.data || []).map((event) => ({
-              id: event.id,
-              title: event.title || 'Untitled Event',
-              category: event.category || 'General',
-              organizer: event.organizer_name || event.organizer_email || 'Unknown',
-              location: event.venue || 'TBA',
-              participants: 0,
-              capacity: 200,
-              date: event.start_datetime ? new Date(event.start_datetime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'TBA',
-              status: String(event.status || 'PENDING').charAt(0).toUpperCase() + String(event.status || 'PENDING').slice(1).toLowerCase(),
-              revenue: Number(event.price || event.ticket_price || 0),
-              featured: false,
-              thumbnail: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=120&q=80',
-            })));
+            setEvents((response.data || []).map((event) => {
+              const rawStatus = String(event.status || 'PENDING').toUpperCase();
+              const statusDisplay = rawStatus === 'APPROVED' ? 'Approved' : rawStatus === 'PENDING' ? 'Pending' : rawStatus === 'REJECTED' ? 'Rejected' : rawStatus === 'CANCELLED' ? 'Cancelled' : rawStatus === 'COMPLETED' ? 'Completed' : rawStatus;
+              return {
+                id: event.id,
+                title: event.title || 'Untitled Event',
+                category: event.category || 'General',
+                organizer: event.organizer_name || event.organizer_email || 'Unknown',
+                location: event.venue || 'TBA',
+                participants: event.registrations_count ?? 0,
+                capacity: event.max_participants ?? 200,
+                date: event.start_datetime ? new Date(event.start_datetime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'TBA',
+                status: statusDisplay,
+                rawStatus: rawStatus,
+                revenue: Number(event.price || event.ticket_price || 0),
+                featured: false,
+                thumbnail: event.banner || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=120&q=80',
+              };
+            }));
           } else {
             setError(response?.message || 'Unable to load events.');
           }
@@ -1016,8 +1085,8 @@ export function EventsTab({ setGlobalToast }) {
                         borderRadius: '999px',
                         fontSize: '11px',
                         fontWeight: '700',
-                        background: ev.status === 'Active' ? '#DCFCE7' : ev.status === 'Completed' ? '#F1F5F9' : ev.status === 'Pending' ? '#FEF3C7' : '#FEE2E2',
-                        color: ev.status === 'Active' ? '#15803D' : ev.status === 'Completed' ? '#475569' : ev.status === 'Pending' ? '#B45309' : '#EF4444'
+                        background: (ev.status === 'Approved' || ev.status === 'Active') ? '#DCFCE7' : ev.status === 'Completed' ? '#F1F5F9' : ev.status === 'Pending' ? '#FEF3C7' : '#FEE2E2',
+                        color: (ev.status === 'Approved' || ev.status === 'Active') ? '#15803D' : ev.status === 'Completed' ? '#475569' : ev.status === 'Pending' ? '#B45309' : '#EF4444'
                       }}
                     >
                       {ev.status}
@@ -1038,7 +1107,7 @@ export function EventsTab({ setGlobalToast }) {
                       >
                         Duplicate
                       </button>
-                      {ev.status === 'Active' && (
+                      {(ev.status === 'Approved' || ev.status === 'Active') && (
                         <button
                           onClick={() => cancelEvent(ev.id)}
                           style={{ padding: '6px 10px', border: '1px solid #FEE2E2', background: '#FEF2F2', borderRadius: '8px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', color: '#EF4444' }}
@@ -1063,22 +1132,37 @@ export function EventsTab({ setGlobalToast }) {
    ──────────────────────────────────────────────────────── */
 
 export function ApprovalsTab({ setGlobalToast }) {
-  const [approvals, setApprovals] = useState([]);
+  const [stats, setStats] = useState(null);
+  const [organizerRequests, setOrganizerRequests] = useState([]);
+  const [eventApprovals, setEventApprovals] = useState([]);
   const [comments, setComments] = useState({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
+  const [subTab, setSubTab] = useState('ALL'); // 'ALL', 'ORGANIZERS', 'EVENTS'
 
-  useEffect(() => {
-    let mounted = true;
+  const fetchApprovalsData = async () => {
+    try {
+      setLoading(true);
+      setError('');
+      const [statsRes, orgRes, eventRes] = await Promise.all([
+        getAdminDashboardStats().catch(() => null),
+        getAdminOrganizerRequestsApi('PENDING').catch(() => null),
+        getAdminEvents({ status: 'PENDING' }).catch(() => null),
+      ]);
 
-    const loadApprovals = async () => {
-      try {
-        setLoading(true);
-        setError('');
-        const response = await getAdminEvents();
-        if (mounted) {
-          if (response?.success) {
-            setApprovals((response.data || []).filter((event) => String(event.status || '').toUpperCase() === 'PENDING').map((event) => ({
+      if (statsRes?.success && statsRes.data) {
+        setStats(statsRes.data);
+      }
+
+      if (orgRes && orgRes.success) {
+        setOrganizerRequests(orgRes.data || []);
+      }
+
+      if (eventRes && eventRes.success) {
+        setEventApprovals(
+          (eventRes.data || [])
+            .filter((event) => String(event.status || '').toUpperCase() === 'PENDING')
+            .map((event) => ({
               id: event.id,
               title: event.title || 'Untitled Event',
               organizer: event.organizer_name || event.organizer_email || 'Unknown',
@@ -1087,113 +1171,269 @@ export function ApprovalsTab({ setGlobalToast }) {
               proposedDate: event.start_datetime ? new Date(event.start_datetime).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }) : 'TBA',
               price: event.is_paid ? formatCurrency(event.price || event.ticket_price || 0) : 'Free',
               notes: event.rejection_reason || 'Awaiting admin review for listing approval.',
-            })));
-          } else {
-            setError(response?.message || 'Unable to load approval queue.');
-          }
-        }
-      } catch (err) {
-        if (mounted) {
-          setError(err?.response?.data?.message || 'Unable to load approval queue.');
-        }
-      } finally {
-        if (mounted) setLoading(false);
+            }))
+        );
       }
-    };
+    } catch (err) {
+      console.error(err);
+      setError('An error occurred while loading the approvals center data.');
+    } finally {
+      setLoading(false);
+    }
+  };
 
-    loadApprovals();
-    return () => {
-      mounted = false;
-    };
+  useEffect(() => {
+    fetchApprovalsData();
   }, []);
 
-  const handleAction = async (id, action) => {
+  const handleOrganizerAction = async (id, action) => {
     try {
-      const response = action === 'Approved' ? await approveAdminEvent(id, comments[id] || '') : await rejectAdminEvent(id, comments[id] || '');
+      const res = action === 'approve' 
+        ? await approveOrganizerRequestApi(id)
+        : await rejectOrganizerRequestApi(id);
+      
+      if (res && res.success) {
+        setGlobalToast(`Organizer application has been ${action === 'approve' ? 'approved' : 'rejected'} successfully.`);
+        fetchApprovalsData();
+      } else {
+        setGlobalToast(res?.message || `Failed to ${action} organizer application.`);
+      }
+    } catch (err) {
+      console.error(err);
+      setGlobalToast(err?.response?.data?.message || `Error executing organizer action.`);
+    }
+  };
+
+  const handleEventAction = async (id, action) => {
+    try {
+      const response = action === 'Approved'
+        ? await approveAdminEvent(id, comments[id] || '')
+        : await rejectAdminEvent(id, comments[id] || '');
+
       if (response?.success) {
-        setApprovals((prev) => prev.filter((ap) => ap.id !== id));
-        setGlobalToast(`Event application has been successfully ${action.toLowerCase()}.`);
+        setGlobalToast(`Event listing application has been successfully ${action.toLowerCase()}.`);
+        fetchApprovalsData();
       } else {
         setGlobalToast(response?.message || `Unable to ${action.toLowerCase()} event.`);
       }
     } catch (err) {
+      console.error(err);
       setGlobalToast(err?.response?.data?.message || `Unable to ${action.toLowerCase()} event.`);
     }
   };
 
+  const pendingOrgCount = stats?.organizers?.pending ?? organizerRequests.length;
+  const approvedOrgCount = stats?.organizers?.approved ?? 0;
+  const rejectedOrgCount = stats?.organizers?.rejected ?? 0;
+  const pendingEventCount = stats?.events?.pending ?? eventApprovals.length;
+
   return (
-    <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-      <div>
-        <h2 style={{ fontSize: '22px', fontWeight: '800', margin: 0 }}>Pending Approvals Center</h2>
-        <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>Review submitted listings, comments, and request changes</p>
+    <div style={{ display: 'flex', flexDirection: 'column', gap: '24px' }}>
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', flexWrap: 'wrap', gap: '16px' }}>
+        <div>
+          <h2 style={{ fontSize: '22px', fontWeight: '800', margin: 0 }}>Pending Approvals Center</h2>
+          <p style={{ fontSize: '14px', color: 'var(--text-secondary)', margin: '4px 0 0 0' }}>
+            Live administrative queue for verifying teacher/organizer applications and reviewing event listings
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: '8px', background: 'var(--bg-card)', padding: '4px', borderRadius: '12px', border: '1px solid var(--border-color-light)' }}>
+          {[
+            { id: 'ALL', label: 'All Pending' },
+            { id: 'ORGANIZERS', label: `Organizers (${pendingOrgCount})` },
+            { id: 'EVENTS', label: `Event Listings (${pendingEventCount})` },
+          ].map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => setSubTab(tab.id)}
+              style={{
+                padding: '8px 16px',
+                borderRadius: '8px',
+                border: 'none',
+                background: subTab === tab.id ? '#F5C451' : 'transparent',
+                color: subTab === tab.id ? '#111827' : 'var(--text-secondary)',
+                fontWeight: '700',
+                fontSize: '13px',
+                cursor: 'pointer',
+                transition: 'all 0.2s',
+              }}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
       </div>
 
       {error && (
-        <div style={{ padding: '14px', borderRadius: '12px', background: '#FEE2E2', color: '#991B1B', border: '1.5px solid #FEE2E2', fontWeight: '600', fontSize: '14px' }}>
+        <div style={{ padding: '14px 20px', borderRadius: '12px', background: '#FEE2E2', color: '#991B1B', border: '1.5px solid #FEE2E2', fontWeight: '600', fontSize: '14px' }}>
           {error}
         </div>
       )}
 
+      {/* Real-time Approval Statistics Cards */}
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(220px, 1fr))', gap: '16px' }}>
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Pending Organizers
+          </span>
+          <h3 style={{ fontSize: '26px', fontWeight: '800', margin: '6px 0 0 0', color: '#F5C451' }}>
+            {loading ? '...' : pendingOrgCount.toLocaleString()}
+          </h3>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Awaiting verification</span>
+        </div>
+
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Approved Organizers
+          </span>
+          <h3 style={{ fontSize: '26px', fontWeight: '800', margin: '6px 0 0 0', color: '#10B981' }}>
+            {loading ? '...' : approvedOrgCount.toLocaleString()}
+          </h3>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Active organizers</span>
+        </div>
+
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Rejected Organizers
+          </span>
+          <h3 style={{ fontSize: '26px', fontWeight: '800', margin: '6px 0 0 0', color: '#EF4444' }}>
+            {loading ? '...' : rejectedOrgCount.toLocaleString()}
+          </h3>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Declined applications</span>
+        </div>
+
+        <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+          <span style={{ fontSize: '11px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.05em' }}>
+            Pending Events
+          </span>
+          <h3 style={{ fontSize: '26px', fontWeight: '800', margin: '6px 0 0 0', color: '#3B82F6' }}>
+            {loading ? '...' : pendingEventCount.toLocaleString()}
+          </h3>
+          <span style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>Listings needing audit</span>
+        </div>
+      </div>
+
       {loading ? (
-        <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading approval queue…</div>
+        <div style={{ padding: '40px', textAlign: 'center', color: 'var(--text-secondary)', background: 'var(--bg-card)', borderRadius: '20px', border: '1px solid var(--border-color-light)' }}>
+          Loading approval queue & live statistics…
+        </div>
       ) : (
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
-          {approvals.map((ap) => (
-            <div key={ap.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '20px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
-                <div>
-                  <span style={{ fontSize: '11px', fontWeight: '700', padding: '3px 8px', borderRadius: '6px', background: 'rgba(245,196,81,0.1)', color: '#F5C451', display: 'inline-block' }}>{ap.category}</span>
-                  <h3 style={{ fontSize: '18px', fontWeight: '800', margin: '8px 0 4px 0' }}>{ap.title}</h3>
-                  <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Submitted by: <strong>{ap.organizer}</strong> &bull; Proposed: {ap.proposedDate}</span>
+        <div style={{ display: 'flex', flexDirection: 'column', gap: '32px' }}>
+          {/* SECTION 1: ORGANIZER REGISTRATION REQUESTS */}
+          {(subTab === 'ALL' || subTab === 'ORGANIZERS') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <GraduationCap size={20} style={{ color: '#F5C451' }} />
+                <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0 }}>
+                  Organizer Registration Applications ({organizerRequests.length})
+                </h3>
+              </div>
+
+              {organizerRequests.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border-color-light)', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  No pending organizer applications awaiting review.
                 </div>
-                <div style={{ fontSize: '15px', fontWeight: '700', color: '#10B981' }}>Price: {ap.price}</div>
-              </div>
-
-              <div style={{ padding: '16px', background: 'var(--bg-dashboard)', borderRadius: '12px', fontSize: '13px', lineHeight: '1.5', marginBottom: '20px' }}>
-                <strong>Organizer Notes:</strong> {ap.notes}
-              </div>
-
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
-                <span style={{ fontSize: '12px', fontWeight: '700' }}>Admin Decision Comments</span>
-                <textarea
-                  placeholder="Enter feedback for approval or change requests..."
-                  value={comments[ap.id] || ''}
-                  onChange={(e) => setComments({ ...comments, [ap.id]: e.target.value })}
-                  style={{ width: '100%', height: '80px', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color-light)', background: 'var(--bg-card)', color: 'var(--text)', outline: 'none', resize: 'none' }}
-                />
-              </div>
-
-              <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
-                <button
-                  onClick={() => handleAction(ap.id, 'Approved')}
-                  style={{ padding: '10px 20px', background: '#F5C451', color: '#111827', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
-                >
-                  Approve Listing
-                </button>
-                <button
-                  onClick={() => handleAction(ap.id, 'Rejected')}
-                  style={{ padding: '10px 20px', background: '#FEE2E2', color: '#EF4444', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
-                >
-                  Reject Listing
-                </button>
-                <button
-                  onClick={() => {
-                    setGlobalToast(`Request for changes submitted with comment: "${comments[ap.id] || ''}"`);
-                    setApprovals((prev) => prev.filter((a) => a.id !== ap.id));
-                  }}
-                  style={{ padding: '10px 20px', background: '#F1F5F9', color: '#475569', border: '1px solid #E2E8F0', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
-                >
-                  Request Changes
-                </button>
-              </div>
+              ) : (
+                organizerRequests.map((req) => (
+                  <div key={req.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px' }}>
+                      <div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '8px' }}>
+                          <span style={{ fontSize: '11px', fontWeight: '700', padding: '2px 8px', borderRadius: '6px', background: 'rgba(245,196,81,0.15)', color: '#F5C451' }}>ORGANIZER REQUEST</span>
+                          <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Date Joined: {formatDate(req.date_joined)}</span>
+                        </div>
+                        <h4 style={{ fontSize: '16px', fontWeight: '800', margin: '8px 0 4px 0' }}>
+                          {req.first_name || req.last_name ? `${req.first_name || ''} ${req.last_name || ''}`.trim() : req.email}
+                        </h4>
+                        <span style={{ fontSize: '13px', color: 'var(--text-secondary)' }}>Email: <strong>{req.email}</strong> {req.phone_number ? `• Phone: ${req.phone_number}` : ''}</span>
+                      </div>
+                      <div style={{ display: 'flex', gap: '8px' }}>
+                        <button
+                          onClick={() => handleOrganizerAction(req.id, 'approve')}
+                          style={{ padding: '8px 16px', background: '#F5C451', color: '#111827', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}
+                        >
+                          Approve Application
+                        </button>
+                        <button
+                          onClick={() => handleOrganizerAction(req.id, 'reject')}
+                          style={{ padding: '8px 16px', background: '#FEE2E2', color: '#EF4444', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer', fontSize: '13px' }}
+                        >
+                          Reject
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
-          ))}
+          )}
 
-          {approvals.length === 0 && (
-            <div style={{ padding: '40px', textAlign: 'center', background: 'var(--bg-card)', borderRadius: '20px', border: '1px solid var(--border-color-light)' }}>
-              <CheckCircle size={40} style={{ color: '#10B981', marginBottom: '12px' }} />
-              <h4 style={{ margin: '0 0 6px 0', fontSize: '16px' }}>No Pending Reviews</h4>
-              <p style={{ margin: 0, fontSize: '13px', color: 'var(--text-muted)' }}>All event listings are completely audited.</p>
+          {/* SECTION 2: EVENT APPROVAL LISTINGS */}
+          {(subTab === 'ALL' || subTab === 'EVENTS') && (
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
+                <Calendar size={20} style={{ color: '#3B82F6' }} />
+                <h3 style={{ fontSize: '18px', fontWeight: '800', margin: 0 }}>
+                  Pending Event Listing Applications ({eventApprovals.length})
+                </h3>
+              </div>
+
+              {eventApprovals.length === 0 ? (
+                <div style={{ padding: '24px', textAlign: 'center', background: 'var(--bg-card)', borderRadius: '16px', border: '1px solid var(--border-color-light)', color: 'var(--text-muted)', fontSize: '13px' }}>
+                  No pending event listings awaiting review.
+                </div>
+              ) : (
+                eventApprovals.map((ap) => (
+                  <div key={ap.id} style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '20px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
+                    <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', flexWrap: 'wrap', gap: '12px', marginBottom: '16px' }}>
+                      <div>
+                        <span style={{ fontSize: '11px', fontWeight: '700', padding: '3px 8px', borderRadius: '6px', background: 'rgba(59,130,246,0.1)', color: '#3B82F6', display: 'inline-block' }}>{ap.category}</span>
+                        <h3 style={{ fontSize: '18px', fontWeight: '800', margin: '8px 0 4px 0' }}>{ap.title}</h3>
+                        <span style={{ fontSize: '12px', color: 'var(--text-muted)' }}>Submitted by: <strong>{ap.organizer}</strong> &bull; Proposed: {ap.proposedDate}</span>
+                      </div>
+                      <div style={{ fontSize: '15px', fontWeight: '700', color: '#10B981' }}>Price: {ap.price}</div>
+                    </div>
+
+                    <div style={{ padding: '16px', background: 'var(--bg-dashboard)', borderRadius: '12px', fontSize: '13px', lineHeight: '1.5', marginBottom: '20px' }}>
+                      <strong>Organizer Notes:</strong> {ap.notes}
+                    </div>
+
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: '8px', marginBottom: '20px' }}>
+                      <span style={{ fontSize: '12px', fontWeight: '700' }}>Admin Decision Comments</span>
+                      <textarea
+                        placeholder="Enter feedback for approval or change requests..."
+                        value={comments[ap.id] || ''}
+                        onChange={(e) => setComments({ ...comments, [ap.id]: e.target.value })}
+                        style={{ width: '100%', height: '80px', padding: '12px', borderRadius: '10px', border: '1px solid var(--border-color-light)', background: 'var(--bg-card)', color: 'var(--text)', outline: 'none', resize: 'none' }}
+                      />
+                    </div>
+
+                    <div style={{ display: 'flex', gap: '10px', justifyContent: 'flex-end' }}>
+                      <button
+                        onClick={() => handleEventAction(ap.id, 'Approved')}
+                        style={{ padding: '10px 20px', background: '#F5C451', color: '#111827', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
+                      >
+                        Approve Listing
+                      </button>
+                      <button
+                        onClick={() => handleEventAction(ap.id, 'Rejected')}
+                        style={{ padding: '10px 20px', background: '#FEE2E2', color: '#EF4444', border: 'none', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
+                      >
+                        Reject Listing
+                      </button>
+                      <button
+                        onClick={() => {
+                          setGlobalToast(`Request for changes submitted with comment: "${comments[ap.id] || ''}"`);
+                          setEventApprovals((prev) => prev.filter((a) => a.id !== ap.id));
+                        }}
+                        style={{ padding: '10px 20px', background: '#F1F5F9', color: '#475569', border: '1px solid #E2E8F0', borderRadius: '10px', fontWeight: '700', cursor: 'pointer' }}
+                      >
+                        Request Changes
+                      </button>
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>
@@ -2057,7 +2297,8 @@ export function AuditLogsTab() {
             setAuditData((response.data || []).map((log, index) => ({
               id: index + 1,
               action: log.action || 'ADMIN_ACTION',
-              desc: log.details || log.object_repr || 'No additional details.',
+              desc: log.description || log.details || log.object_repr || 'No additional details.',
+              relatedEntity: log.related_entity || log.object_repr || 'System',
               admin: log.actor || 'System',
               time: log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A',
             })));
@@ -2110,6 +2351,7 @@ export function AuditLogsTab() {
                 <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>ID</th>
                 <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>ACTION</th>
                 <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>DESCRIPTION</th>
+                <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>RELATED ENTITY</th>
                 <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>OPERATOR</th>
                 <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>TIMESTAMP</th>
               </tr>
@@ -2123,7 +2365,8 @@ export function AuditLogsTab() {
                       {log.action}
                     </span>
                   </td>
-                  <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.desc}</td>
+                  <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', maxWidth: '320px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.desc}</td>
+                  <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: '600' }}>{log.relatedEntity}</td>
                   <td style={{ padding: '16px 20px', fontWeight: '600' }}>{log.admin}</td>
                   <td style={{ padding: '16px 20px', color: 'var(--text-muted)' }}>{log.time}</td>
                 </tr>
