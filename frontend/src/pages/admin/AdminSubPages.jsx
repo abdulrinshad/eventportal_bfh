@@ -282,17 +282,28 @@ export function AnalyticsTab() {
 
   const categories = reports?.by_category || [];
   const totalCategoryCount = categories.reduce((sum, item) => sum + Number(item.count || 0), 0);
-  const chartPoints = (analytics?.user_growth || []).map((item) => Number(item.users || 0));
+
+  const selectedGrowthData = selectedMetric === 'revenue'
+    ? (analytics?.revenue_growth || [])
+    : selectedMetric === 'registrations'
+    ? (analytics?.registration_growth || [])
+    : (analytics?.event_growth || analytics?.user_growth || []);
+
+  const chartPoints = selectedGrowthData.map((item) => Number(item.revenue ?? item.registrations ?? item.events ?? item.users ?? 0));
+  const chartLabels = selectedGrowthData.map((item) => item.month || 'N/A');
   const maxPoint = Math.max(...chartPoints, 1);
+  const stepWidth = selectedGrowthData.length > 1 ? 460 / (selectedGrowthData.length - 1) : 460;
   const chartPath = chartPoints.length > 1
-    ? chartPoints.map((value, index) => `${index === 0 ? 'M' : 'L'} ${index * 80 + 20} ${180 - (value / maxPoint) * 120}`).join(' ')
+    ? chartPoints.map((value, index) => `${index === 0 ? 'M' : 'L'} ${index * stepWidth + 20} ${180 - (value / maxPoint) * 120}`).join(' ')
     : 'M 20 180';
   const areaPath = chartPoints.length > 1
-    ? `${chartPath} L 500 180 L 20 180 Z`
+    ? `${chartPath} L ${(selectedGrowthData.length - 1) * stepWidth + 20} 180 L 20 180 Z`
     : 'M 20 180 L 500 180 L 20 180 Z';
   const registrationRate = analytics?.registrations_by_status
     ? (Number(analytics.registrations_by_status.CONFIRMED || 0) / Math.max(Number(Object.values(analytics.registrations_by_status).reduce((sum, value) => sum + Number(value || 0), 0)), 1)) * 100
     : 0;
+
+  const summaryData = analytics?.summary || {};
 
   return (
     <div style={{ display: 'flex', flexDirection: 'column', gap: '28px' }}>
@@ -340,6 +351,30 @@ export function AnalyticsTab() {
         <div style={{ padding: '24px', textAlign: 'center', color: 'var(--text-secondary)' }}>Loading analytics…</div>
       ) : (
         <>
+          {/* Summary Metric Cards */}
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: '16px' }}>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Events</span>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', margin: '6px 0 0 0' }}>{(summaryData.total_events ?? 0).toLocaleString()}</h3>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Students</span>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', margin: '6px 0 0 0' }}>{(summaryData.total_students ?? 0).toLocaleString()}</h3>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Organizers</span>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', margin: '6px 0 0 0' }}>{(summaryData.total_organizers ?? 0).toLocaleString()}</h3>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Registrations</span>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', margin: '6px 0 0 0' }}>{(summaryData.total_registrations ?? 0).toLocaleString()}</h3>
+            </div>
+            <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '16px', padding: '20px', boxShadow: 'var(--shadow-sm)' }}>
+              <span style={{ fontSize: '12px', fontWeight: '700', color: 'var(--text-muted)', textTransform: 'uppercase' }}>Total Revenue</span>
+              <h3 style={{ fontSize: '24px', fontWeight: '800', margin: '6px 0 0 0', color: '#10B981' }}>{formatCurrency(summaryData.total_revenue ?? 0)}</h3>
+            </div>
+          </div>
+
           <div style={{ display: 'grid', gridTemplateColumns: '2fr 1fr', gap: '24px' }} className="analytics-grid">
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '20px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
               <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '20px' }}>
@@ -361,12 +396,12 @@ export function AnalyticsTab() {
                   <path d={areaPath} fill="url(#chartGrad)" />
                   <path d={chartPath} fill="none" stroke="#F5C451" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round" />
                   {chartPoints.map((value, index) => (
-                    <circle key={index} cx={index * 80 + 20} cy={180 - (value / maxPoint) * 120} r="5" fill="#111827" stroke="#F5C451" strokeWidth="2" />
+                    <circle key={index} cx={index * stepWidth + 20} cy={180 - (value / maxPoint) * 120} r="5" fill="#111827" stroke="#F5C451" strokeWidth="2" />
                   ))}
                 </svg>
                 <div style={{ display: 'flex', width: '100%', justifyContent: 'space-between', position: 'absolute', bottom: '-24px', fontSize: '11px', color: 'var(--text-muted)', fontWeight: '600' }}>
-                  {(analytics?.user_growth || []).map((item, index) => (
-                    <span key={index}>{item.month || `M${index + 1}`}</span>
+                  {chartLabels.map((label, index) => (
+                    <span key={index}>{label}</span>
                   ))}
                 </div>
               </div>
@@ -397,24 +432,24 @@ export function AnalyticsTab() {
 
           <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '24px' }} className="analytics-grid">
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '20px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
-              <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '16px' }}>Daily Active Users (DAU)</h3>
-              <div style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '8px' }}>
-                {Array.from({ length: Math.max((analytics?.user_growth || []).length, 12) }).map((_, i) => (
-                  <div key={i} style={{ display: 'flex', flexDirection: 'column', gap: '4px', alignItems: 'center' }}>
-                    <div
-                      style={{
-                        width: '18px',
-                        height: '18px',
-                        borderRadius: '4px',
-                        background: i % 4 === 0 ? '#10B981' : i % 3 === 0 ? '#34D399' : i % 2 === 0 ? '#A7F3D0' : '#F1F5F9',
-                        cursor: 'pointer'
-                      }}
-                      title={`Activity Level: ${i * 4 + 10}`}
-                    />
-                  </div>
-                ))}
+              <h3 style={{ fontSize: '16px', fontWeight: '700', marginBottom: '16px' }}>Recent Activity Feed</h3>
+              <div style={{ display: 'flex', flexDirection: 'column', gap: '12px' }}>
+                {(analytics?.recent_activity || []).length > 0 ? (
+                  (analytics.recent_activity || []).map((act, i) => (
+                    <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px', borderRadius: '12px', background: 'var(--bg-dashboard)', border: '1px solid var(--border-color-light)' }}>
+                      <div>
+                        <div style={{ fontWeight: '700', fontSize: '13px' }}>{act.title}</div>
+                        <div style={{ fontSize: '12px', color: 'var(--text-secondary)' }}>{act.description}</div>
+                      </div>
+                      <div style={{ fontSize: '11px', color: 'var(--text-muted)' }}>
+                        {act.timestamp ? new Date(act.timestamp).toLocaleTimeString(undefined, { hour: '2-digit', minute: '2-digit' }) : 'N/A'}
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <div style={{ fontSize: '13px', color: 'var(--text-muted)' }}>No recent activity recorded.</div>
+                )}
               </div>
-              <span style={{ fontSize: '11px', color: 'var(--text-muted)' }}>Interactive activity density from recent user growth data</span>
             </div>
 
             <div style={{ background: 'var(--bg-card)', border: '1px solid var(--border-color-light)', borderRadius: '20px', padding: '24px', boxShadow: 'var(--shadow-sm)' }}>
@@ -879,23 +914,28 @@ export function EventsTab({ setGlobalToast }) {
       try {
         setLoading(true);
         setError('');
-        const response = await getAdminEvents();
+        const response = await getAdminEvents({ status: 'ALL' });
         if (mounted) {
           if (response?.success) {
-            setEvents((response.data || []).map((event) => ({
-              id: event.id,
-              title: event.title || 'Untitled Event',
-              category: event.category || 'General',
-              organizer: event.organizer_name || event.organizer_email || 'Unknown',
-              location: event.venue || 'TBA',
-              participants: 0,
-              capacity: 200,
-              date: event.start_datetime ? new Date(event.start_datetime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'TBA',
-              status: String(event.status || 'PENDING').charAt(0).toUpperCase() + String(event.status || 'PENDING').slice(1).toLowerCase(),
-              revenue: Number(event.price || event.ticket_price || 0),
-              featured: false,
-              thumbnail: 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=120&q=80',
-            })));
+            setEvents((response.data || []).map((event) => {
+              const rawStatus = String(event.status || 'PENDING').toUpperCase();
+              const statusDisplay = rawStatus === 'APPROVED' ? 'Approved' : rawStatus === 'PENDING' ? 'Pending' : rawStatus === 'REJECTED' ? 'Rejected' : rawStatus === 'CANCELLED' ? 'Cancelled' : rawStatus === 'COMPLETED' ? 'Completed' : rawStatus;
+              return {
+                id: event.id,
+                title: event.title || 'Untitled Event',
+                category: event.category || 'General',
+                organizer: event.organizer_name || event.organizer_email || 'Unknown',
+                location: event.venue || 'TBA',
+                participants: event.registrations_count ?? 0,
+                capacity: event.max_participants ?? 200,
+                date: event.start_datetime ? new Date(event.start_datetime).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'TBA',
+                status: statusDisplay,
+                rawStatus: rawStatus,
+                revenue: Number(event.price || event.ticket_price || 0),
+                featured: false,
+                thumbnail: event.banner || 'https://images.unsplash.com/photo-1492684223066-81342ee5ff30?auto=format&fit=crop&w=120&q=80',
+              };
+            }));
           } else {
             setError(response?.message || 'Unable to load events.');
           }
@@ -1018,8 +1058,8 @@ export function EventsTab({ setGlobalToast }) {
                         borderRadius: '999px',
                         fontSize: '11px',
                         fontWeight: '700',
-                        background: ev.status === 'Active' ? '#DCFCE7' : ev.status === 'Completed' ? '#F1F5F9' : ev.status === 'Pending' ? '#FEF3C7' : '#FEE2E2',
-                        color: ev.status === 'Active' ? '#15803D' : ev.status === 'Completed' ? '#475569' : ev.status === 'Pending' ? '#B45309' : '#EF4444'
+                        background: (ev.status === 'Approved' || ev.status === 'Active') ? '#DCFCE7' : ev.status === 'Completed' ? '#F1F5F9' : ev.status === 'Pending' ? '#FEF3C7' : '#FEE2E2',
+                        color: (ev.status === 'Approved' || ev.status === 'Active') ? '#15803D' : ev.status === 'Completed' ? '#475569' : ev.status === 'Pending' ? '#B45309' : '#EF4444'
                       }}
                     >
                       {ev.status}
@@ -1040,7 +1080,7 @@ export function EventsTab({ setGlobalToast }) {
                       >
                         Duplicate
                       </button>
-                      {ev.status === 'Active' && (
+                      {(ev.status === 'Approved' || ev.status === 'Active') && (
                         <button
                           onClick={() => cancelEvent(ev.id)}
                           style={{ padding: '6px 10px', border: '1px solid #FEE2E2', background: '#FEF2F2', borderRadius: '8px', fontSize: '11px', fontWeight: '700', cursor: 'pointer', color: '#EF4444' }}
@@ -2230,7 +2270,8 @@ export function AuditLogsTab() {
             setAuditData((response.data || []).map((log, index) => ({
               id: index + 1,
               action: log.action || 'ADMIN_ACTION',
-              desc: log.details || log.object_repr || 'No additional details.',
+              desc: log.description || log.details || log.object_repr || 'No additional details.',
+              relatedEntity: log.related_entity || log.object_repr || 'System',
               admin: log.actor || 'System',
               time: log.timestamp ? new Date(log.timestamp).toLocaleString() : 'N/A',
             })));
@@ -2283,6 +2324,7 @@ export function AuditLogsTab() {
                 <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>ID</th>
                 <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>ACTION</th>
                 <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>DESCRIPTION</th>
+                <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>RELATED ENTITY</th>
                 <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>OPERATOR</th>
                 <th style={{ padding: '16px 20px', fontSize: '12px', fontWeight: '700', color: 'var(--text-secondary)' }}>TIMESTAMP</th>
               </tr>
@@ -2296,7 +2338,8 @@ export function AuditLogsTab() {
                       {log.action}
                     </span>
                   </td>
-                  <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', maxWidth: '300px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.desc}</td>
+                  <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', maxWidth: '320px', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{log.desc}</td>
+                  <td style={{ padding: '16px 20px', color: 'var(--text-secondary)', fontWeight: '600' }}>{log.relatedEntity}</td>
                   <td style={{ padding: '16px 20px', fontWeight: '600' }}>{log.admin}</td>
                   <td style={{ padding: '16px 20px', color: 'var(--text-muted)' }}>{log.time}</td>
                 </tr>
