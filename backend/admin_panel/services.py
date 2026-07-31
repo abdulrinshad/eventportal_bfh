@@ -200,6 +200,37 @@ def build_reports_data():
     return {"summary": summary, "by_category": by_category, "by_month": by_month}
 
 
+def _ensure_growth_baseline(data_list, value_key, months=6):
+    from django.utils import timezone
+    now = timezone.now()
+
+    data_map = {}
+    if data_list:
+        for item in data_list:
+            if isinstance(item, dict) and "month" in item and item["month"] and item["month"] != "N/A":
+                data_map[item["month"]] = item.get(value_key, 0)
+
+    # Generate baseline for the last `months` months
+    months_list = []
+    for i in range(months - 1, -1, -1):
+        m_date = now - timezone.timedelta(days=i * 30)
+        months_list.append(m_date.strftime("%Y-%m"))
+
+    # Merge all month keys while ensuring order
+    all_months = sorted(list(set(months_list).union(set(data_map.keys()))))
+
+    result = []
+    default_val = 0.0 if value_key == "revenue" else 0
+    for m in all_months:
+        val = data_map.get(m, default_val)
+        result.append({
+            "month": m,
+            value_key: float(val) if value_key == "revenue" else int(val),
+        })
+    return result
+
+
+
 def build_analytics_data():
     events_by_status = defaultdict(int)
     for event in Event.objects.values_list("status", flat=True):
@@ -258,6 +289,11 @@ def build_analytics_data():
             "month": entry["month"].strftime("%Y-%m") if entry["month"] else "N/A",
             "revenue": float(entry["revenue"] or 0),
         })
+
+    user_growth = _ensure_growth_baseline(user_growth, "users")
+    event_growth = _ensure_growth_baseline(event_growth, "events")
+    registration_growth = _ensure_growth_baseline(registration_growth, "registrations")
+    revenue_growth = _ensure_growth_baseline(revenue_growth, "revenue")
 
     estimated_revenue = (
         Registration.objects.filter(status=Registration.Status.CONFIRMED)
