@@ -91,21 +91,13 @@ class StripeWebhookView(APIView):
             event = stripe.Webhook.construct_event(
                 payload, sig_header, webhook_secret
             )
-<<<<<<< HEAD
-        except ValueError:
-            logger.error("[Stripe Webhook Error] Invalid payload")
-            return Response({"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
-        except stripe.error.SignatureVerificationError:
-            logger.error("[Stripe Webhook Error] Invalid signature")
-=======
         except ValueError as e:
-            # Invalid payload
+            logger.error(f"[Stripe Webhook Error] Invalid payload: {e}")
             print(f"Stripe Webhook invalid payload error: {e}")
             return Response({"error": "Invalid payload"}, status=status.HTTP_400_BAD_REQUEST)
         except stripe.error.SignatureVerificationError as e:
-            # Invalid signature
+            logger.error(f"[Stripe Webhook Error] Invalid signature: {e}")
             print(f"Stripe Webhook signature verification error: {e}")
->>>>>>> origin/main
             return Response({"error": "Invalid signature"}, status=status.HTTP_400_BAD_REQUEST)
 
         event_type = _get_attr_or_key(event, "type")
@@ -128,7 +120,6 @@ class StripeWebhookView(APIView):
           - event_id    : UUID of the Event
           - user_id     : ID of the participant (CustomUser)
         """
-<<<<<<< HEAD
         stripe_session_id = _get_attr_or_key(session, "id", "")
         metadata = _get_attr_or_key(session, "metadata", None)
 
@@ -149,119 +140,63 @@ class StripeWebhookView(APIView):
             print(f"[Stripe Webhook Early Return] Missing required metadata (event_id: {event_id}, user_id: {user_id})")
             return
 
-        # ── Load Event and User ───────────────────────────────────────────────
-        try:
-            portal_event = Event.objects.select_related("organizer").get(pk=event_id)
-            logger.info(f"[Stripe Webhook] Event lookup success: {portal_event.title} (ID: {portal_event.id})")
-            print(f"[Stripe Webhook Debug] Event lookup success: {portal_event.title}")
-        except Event.DoesNotExist:
-            logger.warning(f"[Stripe Webhook Early Return] Event not found for event_id: {event_id}")
-            print(f"[Stripe Webhook Early Return] Event not found for event_id: {event_id}")
-            return
-
-        from django.contrib.auth import get_user_model
-        User = get_user_model()
-        try:
-            participant = User.objects.get(pk=user_id)
-            logger.info(f"[Stripe Webhook] User lookup success: {participant.email} (ID: {participant.id})")
-            print(f"[Stripe Webhook Debug] User lookup success: {participant.email}")
-        except User.DoesNotExist:
-            logger.warning(f"[Stripe Webhook Early Return] User not found for user_id: {user_id}")
-            print(f"[Stripe Webhook Early Return] User not found for user_id: {user_id}")
-            return
-
-        # ── Extract payment details ───────────────────────────────────────────
-        payment_intent_id = _get_attr_or_key(session, "payment_intent", "")
-        amount_total = _get_attr_or_key(session, "amount_total", 0)
-        currency = _get_attr_or_key(session, "currency", "inr")
-        paid_amount = Decimal(str(amount_total)) / Decimal("100")
-
-        # ── Create or update Registration (idempotent) ────────────────────────
-        existing = Registration.objects.filter(
-            event=portal_event,
-            participant=participant,
-        ).first()
-
-        if existing:
-            if existing.payment_status == Registration.PaymentStatus.PAID:
-                logger.info(
-                    f"[Stripe Webhook Early Return] Registration {existing.id} is already paid. Skipping duplicate webhook."
-                )
-                print(f"[Stripe Webhook Early Return] Registration already paid for event {portal_event.id} and user {participant.id}")
-                return
-
-            existing.status = Registration.Status.CONFIRMED
-            existing.payment_status = Registration.PaymentStatus.PAID
-            existing.stripe_session_id = stripe_session_id
-            existing.payment_intent = payment_intent_id
-            existing.paid_amount = paid_amount
-            existing.currency = currency
-            existing.paid_at = timezone.now()
-            existing.save(update_fields=[
-                "status", "payment_status", "stripe_session_id",
-                "payment_intent", "paid_amount", "currency", "paid_at",
-            ])
-            reg = existing
-            logger.info(f"[Stripe Webhook] Registration UPDATED to CONFIRMED + PAID (Registration ID: {reg.id})")
-            print(f"[Stripe Webhook Debug] Registration UPDATED to CONFIRMED + PAID (Registration ID: {reg.id})")
-        else:
-            reg = Registration.objects.create(
-=======
+        # ── Load Event and User inside atomic transaction ─────────────────────
         with transaction.atomic():
-            metadata   = session.get("metadata", {})
-            event_id   = metadata.get("event_id")
-            user_id    = metadata.get("user_id")
-
-            if not event_id or not user_id:
-                # Cannot process without identifiers
-                return
-
-            # ── Load Event and User ───────────────────────────────────────────
             try:
                 portal_event = Event.objects.select_related("organizer").get(pk=event_id)
+                logger.info(f"[Stripe Webhook] Event lookup success: {portal_event.title} (ID: {portal_event.id})")
+                print(f"[Stripe Webhook Debug] Event lookup success: {portal_event.title}")
             except Event.DoesNotExist:
+                logger.warning(f"[Stripe Webhook Early Return] Event not found for event_id: {event_id}")
+                print(f"[Stripe Webhook Early Return] Event not found for event_id: {event_id}")
                 return
 
             from django.contrib.auth import get_user_model
             User = get_user_model()
             try:
                 participant = User.objects.get(pk=user_id)
+                logger.info(f"[Stripe Webhook] User lookup success: {participant.email} (ID: {participant.id})")
+                print(f"[Stripe Webhook Debug] User lookup success: {participant.email}")
             except User.DoesNotExist:
+                logger.warning(f"[Stripe Webhook Early Return] User not found for user_id: {user_id}")
+                print(f"[Stripe Webhook Early Return] User not found for user_id: {user_id}")
                 return
 
-            # ── Extract payment details ───────────────────────────────────────────
-            stripe_session_id  = session.get("id", "")
-            payment_intent_id  = session.get("payment_intent", "")
-            amount_total       = session.get("amount_total", 0)   # in smallest currency unit (cents/paise)
-            currency           = session.get("currency", "inr")
-            paid_amount        = Decimal(str(amount_total)) / Decimal("100")
+            # ── Extract payment details ───────────────────────────────────────
+            payment_intent_id = _get_attr_or_key(session, "payment_intent", "")
+            amount_total = _get_attr_or_key(session, "amount_total", 0)
+            currency = _get_attr_or_key(session, "currency", "inr")
+            paid_amount = Decimal(str(amount_total)) / Decimal("100")
 
-            # ── Create or update Registration (idempotent) ────────────────────────
+            # ── Create or update Registration (idempotent) ────────────────────
             existing = Registration.objects.filter(
->>>>>>> origin/main
                 event=portal_event,
                 participant=participant,
             ).first()
 
             if existing:
                 if existing.payment_status == Registration.PaymentStatus.PAID:
-                    # Already processed (duplicate webhook) — skip
+                    logger.info(
+                        f"[Stripe Webhook Early Return] Registration {existing.id} is already paid. Skipping duplicate webhook."
+                    )
+                    print(f"[Stripe Webhook Early Return] Registration already paid for event {portal_event.id} and user {participant.id}")
                     return
-                # Update the existing pending/waitlisted record
-                existing.status            = Registration.Status.CONFIRMED
-                existing.payment_status    = Registration.PaymentStatus.PAID
+
+                existing.status = Registration.Status.CONFIRMED
+                existing.payment_status = Registration.PaymentStatus.PAID
                 existing.stripe_session_id = stripe_session_id
-                existing.payment_intent    = payment_intent_id
-                existing.paid_amount       = paid_amount
-                existing.currency          = currency
-                existing.paid_at           = timezone.now()
+                existing.payment_intent = payment_intent_id
+                existing.paid_amount = paid_amount
+                existing.currency = currency
+                existing.paid_at = timezone.now()
                 existing.save(update_fields=[
                     "status", "payment_status", "stripe_session_id",
                     "payment_intent", "paid_amount", "currency", "paid_at",
                 ])
                 reg = existing
+                logger.info(f"[Stripe Webhook] Registration UPDATED to CONFIRMED + PAID (Registration ID: {reg.id})")
+                print(f"[Stripe Webhook Debug] Registration UPDATED to CONFIRMED + PAID (Registration ID: {reg.id})")
             else:
-                # Create new Registration
                 reg = Registration.objects.create(
                     event=portal_event,
                     participant=participant,
@@ -273,12 +208,13 @@ class StripeWebhookView(APIView):
                     currency=currency,
                     paid_at=timezone.now(),
                 )
+                logger.info(f"[Stripe Webhook] Registration CREATED with CONFIRMED + PAID (Registration ID: {reg.id})")
+                print(f"[Stripe Webhook Debug] Registration CREATED with CONFIRMED + PAID (Registration ID: {reg.id})")
 
-            # ── Send notifications ────────────────────────────────────────────────
-            organizer   = portal_event.organizer
+            # ── Send notifications ────────────────────────────────────────────
+            organizer = portal_event.organizer
             event_title = portal_event.title
 
-            # Notify student — registration confirmed
             _create_notification(
                 user=participant,
                 event=portal_event,
@@ -286,47 +222,7 @@ class StripeWebhookView(APIView):
                 title="Registration Confirmed",
                 message=f"Your registration for '{event_title}' is confirmed. Payment of {currency.upper()} {paid_amount} received.",
             )
-            logger.info(f"[Stripe Webhook] Registration CREATED with CONFIRMED + PAID (Registration ID: {reg.id})")
-            print(f"[Stripe Webhook Debug] Registration CREATED with CONFIRMED + PAID (Registration ID: {reg.id})")
 
-<<<<<<< HEAD
-        # ── Send notifications ────────────────────────────────────────────────
-        organizer = portal_event.organizer
-        event_title = portal_event.title
-
-        _create_notification(
-            user=participant,
-            event=portal_event,
-            notification_type=Notification.NotificationType.REGISTRATION,
-            title="Registration Confirmed",
-            message=f"Your registration for '{event_title}' is confirmed. Payment of {currency.upper()} {paid_amount} received.",
-        )
-
-        _create_notification(
-            user=participant,
-            event=portal_event,
-            notification_type=Notification.NotificationType.PAYMENT_RECEIVED,
-            title="Payment Received",
-            message=f"Payment of {currency.upper()} {paid_amount} for '{event_title}' has been received successfully.",
-        )
-
-        _create_notification(
-            user=organizer,
-            event=portal_event,
-            notification_type=Notification.NotificationType.NEW_REGISTRATION,
-            title="New Registration",
-            message=f"New paid registration received for '{event_title}'.",
-        )
-
-        _create_notification(
-            user=organizer,
-            event=portal_event,
-            notification_type=Notification.NotificationType.PAYMENT_RECEIVED,
-            title="Payment Received",
-            message=f"Payment of {currency.upper()} {paid_amount} received for '{event_title}' from {participant.email}.",
-        )
-=======
-            # Notify student — payment receipt
             _create_notification(
                 user=participant,
                 event=portal_event,
@@ -335,7 +231,6 @@ class StripeWebhookView(APIView):
                 message=f"Payment of {currency.upper()} {paid_amount} for '{event_title}' has been received successfully.",
             )
 
-            # Notify organizer — new registration
             _create_notification(
                 user=organizer,
                 event=portal_event,
@@ -344,7 +239,6 @@ class StripeWebhookView(APIView):
                 message=f"New paid registration received for '{event_title}'.",
             )
 
-            # Notify organizer — payment received
             _create_notification(
                 user=organizer,
                 event=portal_event,
@@ -352,4 +246,3 @@ class StripeWebhookView(APIView):
                 title="Payment Received",
                 message=f"Payment of {currency.upper()} {paid_amount} received for '{event_title}' from {participant.email}.",
             )
->>>>>>> origin/main
