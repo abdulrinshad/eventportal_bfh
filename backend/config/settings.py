@@ -189,6 +189,7 @@ SIMPLE_JWT = {
 
 CORS_ALLOWED_ORIGINS = [
     "http://localhost:5173",
+    "http://localhost:5174",
 ]
 
 EMAIL_BACKEND = "django.core.mail.backends.console.EmailBackend"
